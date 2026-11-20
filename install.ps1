@@ -71,15 +71,35 @@ Invoke-WebRequest -Uri $url -OutFile $zipPath
 Expand-Archive -Path $zipPath -DestinationPath $Root -Force
 Write-Host "Installed Kirkstagram ($Client) into $Root"
 
-# Build Vencord from a checkout
+# Build Vencord from the checkout (run pnpm.exe directly — pnpm.ps1 is blocked
+# by the Restricted execution policy).
 if ($Client -in @('vencord','vesktop')) {
     $pkg = Join-Path $Root "package.json"
-    $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
-    if ($pnpm -and (Test-Path $pkg)) {
-        Write-Host "Building Vencord (pnpm build)..."
+    $pnpmExePath = Join-Path $env:APPDATA "npm\node_modules\pnpm\pnpm.exe"
+    $pnpmExe = $null
+    if (Test-Path $pkg) {
+        if (Test-Path $pnpmExePath) {
+            $pnpmExe = Get-Item $pnpmExePath -ErrorAction SilentlyContinue
+        } else {
+            $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
+            if ($pnpm) {
+                if ($pnpm.Source -like "*.ps1") { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -ErrorAction SilentlyContinue }
+                $exe = Join-Path (Split-Path $pnpm.Source) "pnpm.exe"
+                if (Test-Path $exe) { $pnpmExe = Get-Item $exe -ErrorAction SilentlyContinue }
+            }
+        }
+    }
+    if ($pnpmExe) {
+        Write-Host "Building Vencord (pnpm install + pnpm build)..."
         Push-Location $Root
-        try { & $pnpm.Source build } finally { Pop-Location }
-        Write-Host "Build finished."
+        try {
+            & $pnpmExe.FullName install
+            if ($LASTEXITCODE -eq 0) { & $pnpmExe.FullName build }
+            if ($LASTEXITCODE -eq 0) { Write-Host "Build finished." }
+            else { Write-Host "Build failed (exit code $LASTEXITCODE). Run the commands manually:" }
+        } finally { Pop-Location }
+    } else {
+        Write-Host "pnpm not found — build manually: cd $Root && pnpm install && pnpm build"
     }
 }
 
