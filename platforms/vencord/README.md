@@ -1,7 +1,7 @@
 # Kirkstagram — Vencord adapter
 
 Rewrites Instagram links in outgoing messages via Vencord's message events
-API:
+API, plus a patch on Discord's own send flow.
 
 - `onBeforeMessageSend` — fires before every new message is sent. The
   listener mutates `messageObj.content` in place; the message then proceeds
@@ -100,9 +100,23 @@ so re-enabling the plugin or editing old messages is safe.
 
 ## How it works
 
-`onBeforeMessageSend` / `onBeforeMessageEdit` receive the message as a
-`MessageObject` and the plugin rewrites `msg.content` with the shared engine
-(`packages/core`). The engine:
+Two interception levels are used:
+
+1. **Vencord's message events API** — `onBeforeMessageSend` /
+   `onBeforeMessageEdit`. `PluginManager` registers the listeners via
+   `addMessagePreSendListener` / `addMessagePreEditListener` when the plugin
+   starts and removes them when it stops, so no manual cleanup is needed.
+   They receive the message as a `MessageObject` and the plugin rewrites
+   `msg.content` with the shared engine (`packages/core`).
+2. **A patch on Discord's send entry point** — the plugin adds a patch via
+   `addPatch` in `start()` (applied when the patched module is loaded) that
+   rewrites the outgoing message object right before Discord queues it:
+   Discord's send function `Ti` builds the message object and calls
+   `Ut.sendMessage(e, i, o, n)`; the patch calls
+   `globalThis.kirkstagramRewrite(i)` before that call. This covers Discord
+   builds where the `MessageEventsAPI` send patches no longer match.
+
+The engine:
 
 - matches absolute `https?://` URLs whose host is exactly `instagram.com`,
   `www.instagram.com` or `m.instagram.com` (case-insensitive), with paths

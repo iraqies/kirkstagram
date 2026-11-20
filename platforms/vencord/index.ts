@@ -9,11 +9,17 @@
  * API: `onBeforeMessageSend` and `onBeforeMessageEdit`. The message content
  * is mutated in place before the send/edit proceeds.
  *
+ * Discord builds move their send flow around, so this plugin also patches
+ * Discord's send entry point directly: the patch calls
+ * `globalThis.kirkstagramRewrite` (set in `start()`) with the outgoing
+ * message object right before Discord queues it.
+ *
  * Install: copy this file into Vencord's `src/plugins/` folder and build, or
  * install as a userplugin. Vencord resolves the relative import of the shared
  * core engine (../../packages/core/src/index).
  */
 import { MessageObject } from "@api/MessageEvents";
+import { addPatch } from "@api/PluginManager";
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import {
@@ -77,12 +83,35 @@ function rewriteMessage(msg: MessageObject): void {
 	if (next !== msg.content) msg.content = next;
 }
 
+// Discord's send entry point: `Ti` builds the outgoing message object (`i`)
+// and calls `Ut.sendMessage(e, i, o, n)`. The patch rewrites `i.content`
+// right before Discord queues the message.
+const sendPatch = {
+	find: 'function Ti(e,t,o=!0,n={}){let i={content:"",invalidEmojis:[],tts:!1,validNonShortcutEmojis:[],...t};return Ut.sendMessage(e,i,o,n)}',
+	replacement: {
+		match: "Ut.sendMessage(e,i,o,n)",
+		replace: "Ut.sendMessage(e,(globalThis.kirkstagramRewrite?.(i),i),o,n)"
+	}
+};
+
+const patchTarget = globalThis as { kirkstagramRewrite?: (msg: MessageObject) => void };
+
 export default definePlugin({
 	name: "Kirkstagram",
 	description: "Rewrites Instagram links into Kirkstagram links before sending",
 	tags: ["Utility"],
 	authors: [{ name: "Kirkstagram contributors", id: 0n }],
 	settings,
+	start() {
+		patchTarget.kirkstagramRewrite = rewriteMessage;
+		try {
+			addPatch(sendPatch, "Kirkstagram");
+		} catch {
+			// If the Discord build drifts again the patch silently no-ops;
+			// the onBeforeMessageSend listener still fires via MessageEventsAPI
+			// on builds where its patches match.
+		}
+	},
 	onBeforeMessageSend(_channelId, msg) {
 		rewriteMessage(msg);
 	},
