@@ -34,16 +34,35 @@ if (-not $Client -or $Client -notin $clients) {
         $Client = Read-Host "Which client? [vencord|vesktop|revenge|valenced]"
     } while (-not ($Client -in $clients))
 }
-if (-not $Root) { $Root = Read-Host "Path to the $Client installation" }
+
+if (-not $Root) {
+    # Find the install:
+    #  1) default Vencord data dir (join(app.getPath("userData"), "..", "Vencord")
+    #     — src/main/utils/constants.ts:25)
+    #  2) a Vencord checkout on disk (folder with package.json)
+    $dataDir = Join-Path $env:APPDATA "Vencord"
+    $found = $null
+    if (Test-Path $dataDir) {
+        $found = $dataDir
+    } else {
+        $candidates = Get-ChildItem -Path "D:\", "C:\Users" -Recurse -Directory -Filter Vencord -ErrorAction SilentlyContinue | Select-Object -First 10
+        foreach ($c in $candidates) {
+            if (Test-Path (Join-Path $c.FullName "package.json")) { $found = $c.FullName; break }
+        }
+    }
+    if (-not $found) { $found = Read-Host "Path to the $Client installation" }
+    $Root = $found
+}
 if (-not (Test-Path $Root)) { Write-Error "Path not found: $Root"; exit 1 }
+Write-Host "Found $Client install: $Root"
 
 $owner = 'iraqies'; $repo = 'kirkstagram'; $branch = 'main'
 $base = "https://raw.githubusercontent.com/$owner/$repo/$branch"
 $zipPaths = @{
     'vencord'  = "releases/vencord/Kirkstagram.zip"
     'vesktop'  = "releases/vencord/Kirkstagram.zip"
-    'revenge'  = "releases/revenge/com.kirkstagram.revenge@1.0.0.zip"
-    'valenced' = "releases/valenced/com.kirkstagram.valenced@1.0.0.zip"
+    'revenge'  = "releases/revenge/com.krakstagram.revenge@1.0.0.zip"
+    'valenced' = "releases/valenced/com.krakstagram.valenced@1.0.0.zip"
 }
 
 $zipPath = Join-Path $env:TEMP "Kirkstagram-$Client.zip"
@@ -52,4 +71,17 @@ Write-Host "Downloading $url ..."
 Invoke-WebRequest -Uri $url -OutFile $zipPath
 Expand-Archive -Path $zipPath -DestinationPath $Root -Force
 Write-Host "Installed Kirkstagram ($Client) into $Root"
-Write-Host "Next: enable Kirkstagram in the $Client Plugins panel."
+
+# Build Vencord from a checkout
+if ($Client -in @('vencord','vesktop')) {
+    $pkg = Join-Path $Root "package.json"
+    $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
+    if ($pnpm -and (Test-Path $pkg)) {
+        Write-Host "Building Vencord (pnpm build)..."
+        Push-Location $Root
+        try { & $pnpm.Source build } finally { Pop-Location }
+        Write-Host "Build finished."
+    }
+}
+
+Write-Host "Next: enable Kirkstagram in the $Client Plugins panel (restart Discord if asked)."
