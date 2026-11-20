@@ -167,7 +167,7 @@ No Vesktop adapter: Vesktop downloads the stock Vencord stack from
 One-command installation of the pre-built plugins — Spicetify-style:
 
 ```powershell
-iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.ps1'))
+iwr -useb https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.ps1 | iex
 ```
 
 or non-interactively:

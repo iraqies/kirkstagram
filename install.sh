@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
+#
 # Kirkstagram — one-command installer (Linux/macOS).
 #
 # Interactive:
@@ -10,6 +12,14 @@
 set -e
 owner='iraqies'; repo='kirkstagram'; branch='main'
 base="https://raw.githubusercontent.com/$owner/$repo/$branch"
+
+echo " __   __  ___  ___  _        "
+echo "|  \\/  | / _ \\|_  | |       "
+echo "|   \\/ | | | |  | | |       "
+echo "|   |  | |_| |  | | |__      "
+echo "|_|  |_|\\___/   |_|\\___/     "
+echo ""
+echo "Kirkstagram - Instagram-to-Kirkstagram link rewriting for Discord."
 
 if [ -z "$1" ]; then
   printf 'Which client? [vencord|vesktop|revenge|valenced] '

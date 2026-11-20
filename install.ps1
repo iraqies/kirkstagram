@@ -1,8 +1,20 @@
+# SPDX-License-Identifier: MIT
+$banner = @"
+
+ __   __  ___  ___  _        
+|  \/  | / _ \|_  | |        
+|   \/ | | | |  | | |        
+|   |  | |_| |  | | |__      
+|_|  |_|\___/   |_|\___/     
+
+Kirkstagram - Instagram-to-Kirkstagram link rewriting for Discord.
+"@
+
 # Kirkstagram — one-command installer for PowerShell.
 #
 # Spicetify-style one-liner:
-#   iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.ps1'))
-#   or: Invoke-WebRequest -Uri https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.ps1 | iex
+#   iwr -useb https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.ps1 | iex
+#   or: iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.ps1'))
 #
 # From a local checkout:
 #   powershell install.ps1 -Client vencord -Root <VENCORD>
@@ -23,6 +35,8 @@ $zipPaths = @{
 if (-not $Client) { $Client = Read-Host "Which client? [vencord|vesktop|revenge|valenced]" }
 if (-not $Root) { $Root = Read-Host "Path to the $Client installation" }
 if (-not (Test-Path $Root)) { Write-Error "Path not found: $Root"; exit 1 }
+
+Write-Host $banner
 
 $zipPath = Join-Path $env:TEMP "Kirkstagram-$Client.zip"
 $url = "$base/$($zipPaths[$Client])"
