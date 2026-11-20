@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 #
-# Kirkstagram — one-command installer for PowerShell.
+# Kirkstagram - one-command installer for PowerShell.
 #
 # Spicetify-style one-liner:
 #   iwr -useb https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.ps1 | iex
@@ -37,9 +37,9 @@ if (-not $Client -or $Client -notin $clients) {
 
 if (-not $Root) {
     # Find the Vencord install:
-    #  1) a Vencord checkout on disk (folder with package.json) — the buildable install
+    #  1) a Vencord checkout on disk (folder with package.json) - the buildable install
     #  2) the default Vencord data dir (join(app.getPath("userData"), "..", "Vencord"),
-    #     src/main/utils/constants.ts:22-26) — fallback when no checkout is found
+    #     src/main/utils/constants.ts:22-26) - fallback when no checkout is found
     $found = $null
     $candidates = Get-ChildItem -Path "D:\", "C:\Users" -Recurse -Directory -Filter Vencord -ErrorAction SilentlyContinue | Select-Object -First 10
     foreach ($c in $candidates) {
@@ -61,7 +61,7 @@ $zipPaths = @{
     'vencord'  = "releases/vencord/Kirkstagram.zip"
     'vesktop'  = "releases/vencord/Kirkstagram.zip"
     'revenge'  = "releases/revenge/com.kirkstagram.revenge@1.0.0.zip"
-    'valenced' = "releases/valenced/com.kirkstagram.valenced@1.0.0.zip"
+    'valenced' = "releases/valenced/com.krakstagram.valenced@1.0.0.zip"
 }
 
 $zipPath = Join-Path $env:TEMP "Kirkstagram-$Client.zip"
@@ -71,8 +71,8 @@ Invoke-WebRequest -Uri $url -OutFile $zipPath
 Expand-Archive -Path $zipPath -DestinationPath $Root -Force
 Write-Host "Installed Kirkstagram ($Client) into $Root"
 
-# Build Vencord from the checkout (run pnpm.exe directly — pnpm.ps1 is blocked
-# by the Restricted execution policy).
+# Build Vencord from the checkout. Run pnpm.exe directly: pnpm.ps1 is blocked
+# by the Restricted execution policy.
 if ($Client -in @('vencord','vesktop')) {
     $pkg = Join-Path $Root "package.json"
     $pnpmExePath = Join-Path $env:APPDATA "npm\node_modules\pnpm\pnpm.exe"
@@ -96,10 +96,10 @@ if ($Client -in @('vencord','vesktop')) {
             & $pnpmExe.FullName install
             if ($LASTEXITCODE -eq 0) { & $pnpmExe.FullName build }
             if ($LASTEXITCODE -eq 0) { Write-Host "Build finished." }
-            else { Write-Host "Build failed (exit code $LASTEXITCODE). Run the commands manually:" }
+            else { Write-Host "Build failed (exit code $LASTEXITCODE). Run 'pnpm install && pnpm build' in $Root manually." }
         } finally { Pop-Location }
     } else {
-        Write-Host "pnpm not found — build manually: cd $Root && pnpm install && pnpm build"
+        Write-Host "pnpm.exe not found - run 'pnpm install && pnpm build' in $Root manually."
     }
 }
 
