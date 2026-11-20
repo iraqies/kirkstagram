@@ -36,19 +36,18 @@ if (-not $Client -or $Client -notin $clients) {
 }
 
 if (-not $Root) {
-    # Find the install:
-    #  1) default Vencord data dir (join(app.getPath("userData"), "..", "Vencord")
-    #     — src/main/utils/constants.ts:25)
-    #  2) a Vencord checkout on disk (folder with package.json)
-    $dataDir = Join-Path $env:APPDATA "Vencord"
+    # Find the Vencord install:
+    #  1) a Vencord checkout on disk (folder with package.json) — the buildable install
+    #  2) the default Vencord data dir (join(app.getPath("userData"), "..", "Vencord"),
+    #     src/main/utils/constants.ts:22-26) — fallback when no checkout is found
     $found = $null
-    if (Test-Path $dataDir) {
-        $found = $dataDir
-    } else {
-        $candidates = Get-ChildItem -Path "D:\", "C:\Users" -Recurse -Directory -Filter Vencord -ErrorAction SilentlyContinue | Select-Object -First 10
-        foreach ($c in $candidates) {
-            if (Test-Path (Join-Path $c.FullName "package.json")) { $found = $c.FullName; break }
-        }
+    $candidates = Get-ChildItem -Path "D:\", "C:\Users" -Recurse -Directory -Filter Vencord -ErrorAction SilentlyContinue | Select-Object -First 10
+    foreach ($c in $candidates) {
+        if (Test-Path (Join-Path $c.FullName "package.json")) { $found = $c.FullName; break }
+    }
+    if (-not $found) {
+        $dataDir = Join-Path $env:APPDATA "Vencord"
+        if (Test-Path $dataDir) { $found = $dataDir }
     }
     if (-not $found) { $found = Read-Host "Path to the $Client installation" }
     $Root = $found
@@ -61,8 +60,8 @@ $base = "https://raw.githubusercontent.com/$owner/$repo/$branch"
 $zipPaths = @{
     'vencord'  = "releases/vencord/Kirkstagram.zip"
     'vesktop'  = "releases/vencord/Kirkstagram.zip"
-    'revenge'  = "releases/revenge/com.krakstagram.revenge@1.0.0.zip"
-    'valenced' = "releases/valenced/com.krakstagram.valenced@1.0.0.zip"
+    'revenge'  = "releases/revenge/com.kirkstagram.revenge@1.0.0.zip"
+    'valenced' = "releases/valenced/com.kirkstagram.valenced@1.0.0.zip"
 }
 
 $zipPath = Join-Path $env:TEMP "Kirkstagram-$Client.zip"
