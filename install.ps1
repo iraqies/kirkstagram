@@ -98,6 +98,17 @@ if ($Client -in @('vencord','vesktop')) {
             if ($LASTEXITCODE -eq 0) { Write-Host "Build finished." }
             else { Write-Host "Build failed (exit code $LASTEXITCODE). Run 'pnpm install && pnpm build' in $Root manually." }
         } finally { Pop-Location }
+        # Sync the freshly built files into the running Vencord's data dir
+        # (C:\Users\<you>\Roaming\Vencord\dist) — Vencord compiles its plugin
+        # list at build time (scripts/build/build.mjs:78), so the running
+        # client needs the new files.
+        $buildDist = Join-Path $Root "dist"
+        $dataDist = Join-Path $env:APPDATA "Vencord\dist"
+        if ((Test-Path $buildDist) -and (Test-Path $dataDist)) {
+            Write-Host "Syncing Vencord files into $dataDist ..."
+            Copy-Item -Recurse -Force "$buildDist\*" $dataDist
+            Write-Host "Synced."
+        }
     } else {
         Write-Host "pnpm.exe not found - run 'pnpm install && pnpm build' in $Root manually."
     }
