@@ -119,9 +119,11 @@ function Install-Vesktop {
     if (-not $vroot) { $vroot = Find-VencordRoot }
     if (-not $vroot) { Write-Error "Vesktop flow: no Vencord checkout found - pass -Root <VENCORD>"; exit 1 }
     if (-not (Test-Path (Join-Path $vroot "package.json"))) { Write-Error "not a Vencord checkout: $vroot"; exit 1 }
+    Write-Host "Found Vencord checkout: $vroot"
 
     Build-Vencord $vroot
 
+    $vdist = Join-Path $vroot "dist"
     $filesDir = Join-Path $env:APPDATA "Vesktop\sessionData\vencordFiles"
     if ($Root) {
         if (Test-Path (Join-Path $Root "sessionData")) { $filesDir = Join-Path $Root "sessionData\vencordFiles" }
@@ -129,9 +131,19 @@ function Install-Vesktop {
         elseif (Test-Path $Root) { $filesDir = $Root }
     }
     New-Item -ItemType Directory -Path $filesDir -Force | Out-Null
+    Write-Host "Vesktop Vencord files dir: $filesDir"
 
-    $files = Get-ChildItem (Join-Path $vroot "dist") -Filter "vencordDesktop*" -File
-    if (-not $files) { Write-Error "no built vencord files in $vroot\dist"; exit 1 }
+    $files = @(
+        (Join-Path $vdist "vencordDesktopMain.js"),
+        (Join-Path $vdist "vencordDesktopPreload.js"),
+        (Join-Path $vdist "vencordDesktopRenderer.js"),
+        (Join-Path $vdist "vencordDesktopRenderer.css")
+    )
+    $missing = $files | Where-Object { -not (Test-Path $_) }
+    if ($missing) {
+        Write-Error "missing built Vencord files in $vdist`: $($missing -join ', ')"
+        exit 1
+    }
     Copy-Item -Force $files -Destination $filesDir
     Write-Host "Vesktop is now using your Kirkstagram build ($filesDir)."
     Write-Host "Next: restart Vesktop and enable the Kirkstagram plugin in its Plugins panel."
