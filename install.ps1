@@ -24,6 +24,17 @@ $banner = @"
 Kirkstagram - Instagram-to-Kirkstagram link rewriting for Discord.
 "@
 
+Write-Host $banner
+
+$clients = @('vencord','vesktop','revenge','valenced')
+if (-not $Client -or $Client -notin $clients) {
+    do {
+        $Client = Read-Host "Which client? [vencord|vesktop|revenge|valenced]"
+    } while (-not ($Client -in $clients))
+}
+if (-not $Root) { $Root = Read-Host "Path to the $Client installation" }
+if (-not (Test-Path $Root)) { Write-Error "Path not found: $Root"; exit 1 }
+
 $owner = 'iraqies'; $repo = 'kirkstagram'; $branch = 'main'
 $base = "https://raw.githubusercontent.com/$owner/$repo/$branch"
 $zipPaths = @{
@@ -32,12 +43,6 @@ $zipPaths = @{
     'revenge'  = "releases/revenge/com.kirkstagram.revenge@1.0.0.zip"
     'valenced' = "releases/valenced/com.kirkstagram.valenced@1.0.0.zip"
 }
-
-if (-not $Client) { $Client = Read-Host "Which client? [vencord|vesktop|revenge|valenced]" }
-if (-not $Root) { $Root = Read-Host "Path to the $Client installation" }
-if (-not (Test-Path $Root)) { Write-Error "Path not found: $Root"; exit 1 }
-
-Write-Host $banner
 
 $zipPath = Join-Path $env:TEMP "Kirkstagram-$Client.zip"
 $url = "$base/$($zipPaths[$Client])"
