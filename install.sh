@@ -1,6 +1,4 @@
 #!/bin/sh
-# SPDX-License-Identifier: MIT
-#
 # Kirkstagram — one-command installer (Linux/macOS).
 #
 # Interactive:
@@ -13,11 +11,13 @@ set -e
 owner='iraqies'; repo='kirkstagram'; branch='main'
 base="https://raw.githubusercontent.com/$owner/$repo/$branch"
 
-echo " __   __  ___  ___  _        "
-echo "|  \\/  | / _ \\|_  | |       "
-echo "|   \\/ | | | |  | | |       "
-echo "|   |  | |_| |  | | |__      "
-echo "|_|  |_|\\___/   |_|\\___/     "
+echo "#   # ##### ####  #   #  #### #####   ##   ###  ####    ##  #   #"
+echo "#   #   #   #   # #   # #       #    #  # #   # #   #  #  # ## ##"
+echo "#   #   #   #   # #   # #       #   #   # #     #   # #   # # # #"
+echo "#####   #   ####  #####  ###    #   ##### # ### ####  ##### # # #"
+echo "#   #   #   # #   #   #     #   #   #   # #   # # #   #   # #   #"
+echo "#   #   #   #  #  #   #     #   #   #   # #   # #  #  #   # #   #"
+echo "#   # ##### #   # #   # ####    #   #   #  ###  #   # #   # #   #"
 echo ""
 echo "Kirkstagram - Instagram-to-Kirkstagram link rewriting for Discord."
 
@@ -31,7 +31,7 @@ fi
 case "$client" in
   vencord|vesktop) zip_path="releases/vencord/Kirkstagram.zip" ;;
   revenge)         zip_path="releases/revenge/com.kirkstagram.revenge@1.0.0.zip" ;;
-  valenced)        zip_path="releases/valenced/com.kirkstagram.valenced@1.0.0.zip" ;;
+  valenced)        zip_path="releases/valenced/com.krakstagram.valenced@1.0.0.zip" ;;
   *) echo "Unknown client: '$client' (expected vencord|vesktop|revenge|valenced)" >&2; exit 1 ;;
 esac
 

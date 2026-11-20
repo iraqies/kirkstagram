@@ -43,6 +43,10 @@ https://github.com/iraqies/kirkstagram.
   (the plugin) and `src/packages/core/src/` (the shared conversion engine).
   Build Vencord with `pnpm build` so the plugin compiles with the rest of
   Vencord, then enable **Kirkstagram** in **Settings → Vencord → Plugins**.
+  Note: Vencord compiles plugins from `src/plugins` and `src/userplugins`
+  (verified: `scripts/build/build.mjs:78`, `scripts/build/common.mjs:162`) —
+  so `-Root` should be your Vencord checkout (the folder with `src/` and
+  `package.json`), not the Vencord data dir (`%APPDATA%\Vencord`).
 - **Revenge** — extracts into `<revenge-plugin-template>`:
   `plugins/kirkstagram/` (plugin + manifest) and `packages/core/src/` (the
   shared engine). Install the ZIP in the app (see the `revenge-plugin-template`
