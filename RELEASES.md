@@ -7,7 +7,7 @@ folder; after installing, enable the plugin in the client's Plugins panel.
 ## Install with one command
 
 ```powershell
-iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.ps1'))
+iwr -useb https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.ps1 | iex
 ```
 
 or, non-interactively (also works from a local checkout):
