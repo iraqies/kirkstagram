@@ -1,4 +1,8 @@
 /**
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
  * Kirkstagram — Vencord adapter.
  *
  * Rewrites Instagram links in outgoing messages via Vencord's message events
