@@ -14,10 +14,19 @@ or, non-interactively (also works from a local checkout):
 
 ```powershell
 powershell install.ps1 -Client vencord -Root <VENCORD>
-powershell install.ps1 -Client vesktop -Root <vesktop-install-dir>
+powershell install.ps1 -Client vesktop -Root <Vesktop app dir or vencordFiles dir>
 powershell install.ps1 -Client revenge -Root <@revenge-plugin-template>
 powershell install.ps1 -Client valenced -Root <@valenced-plugin-template>
 ```
+
+macOS/Linux users:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.sh | sh
+```
+
+(The `.sh` detects the OS via `uname` and searches common Vencord/Vesktop
+locations; use `-Client`/`-Root` as above.)
 
 Linux/macOS:
 
@@ -36,6 +45,14 @@ https://github.com/iraqies/kirkstagram.
 | `releases/vencord/Kirkstagram.zip` | Vencord | 1.0.0 | `<VENCORD>` |
 | `releases/revenge/com.kirkstagram.revenge@1.0.0.zip` | Revenge | 1.0.0 | `<revenge-plugin-template>` |
 | `releases/valenced/com.kirkstagram.valenced@1.0.0.zip` | Valenced | 1.0.0 | `<valenced-plugin-template>` |
+
+Valenced installs external plugins from repositories: add the Kirkstagram
+repository index
+(`releases/valenced/index.json`) via **Settings > Valenced > Plugins → the
+gear icon → "Add a repository by URL"** (URL:
+`https://raw.githubusercontent.com/iraqies/kirkstagram/main/releases/valenced/index.json`),
+then tap **Install** in the Browse Plugins list, enable the plugin, and
+restart Discord. Sideloading the ZIP via **Install from file** also works.
 
 ## What installing puts where
 

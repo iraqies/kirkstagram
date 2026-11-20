@@ -51,7 +51,11 @@ filters from `@valenced/modules/finders/filters` (`withProps`).
 1. Install: sideload the ZIP via
    **Settings > Valenced > Plugins > Install from file**, or add the ZIP to a
    Valenced repository (see the *Installing Add-ons* guide in the Valenced
-   docs).
+   docs). **The repository index is
+   [releases/valenced/index.json](releases/valenced/index.json)** — add it via
+   the **+** button on the Plugins page → "Add a repository by URL", entering
+   `https://raw.githubusercontent.com/iraqies/kirkstagram/main/releases/valenced/index.json`,
+   then tap **Install** on the Kirkstagram entry.
 2. Enable the plugin from the Plugins panel and restart Discord.
 
 Or install the prebuilt artifact: `releases/valenced/com.kirkstagram.valenced@1.0.0.zip`

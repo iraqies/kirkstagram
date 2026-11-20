@@ -1,13 +1,15 @@
 # SPDX-License-Identifier: MIT
 #
-# Kirkstagram - one-command installer for PowerShell.
+# Kirkstagram - one-command installer for PowerShell (Windows).
 #
 # Spicetify-style one-liner:
 #   iwr -useb https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.ps1 | iex
-#   or: iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.ps1'))
 #
-# From a local checkout:
+# Usage:
 #   powershell install.ps1 -Client vencord -Root <VENCORD>
+#   powershell install.ps1 -Client vesktop -Root <VESVESKTOP dir or vencordFiles dir>
+#
+# (macOS/Linux users: install.sh - `sh install.sh -Client vencord`)
 param(
     [string]$Client,
     [string]$Root
@@ -19,14 +21,17 @@ $banner = @"
 #   #   #   #   # #   # #       #    #  # #   # #   #  #  # ## ##
 #   #   #   #   # #   # #       #   #   # #     #   # #   # # # #
 #####   #   ####  #####  ###    #   ##### # ### ####  ##### # # #
-#   #   #   # #   #   #     #   #   #   # #   # # #   #   # #   #
-#   #   #   #  #  #   #     #   #   #   # #   # #  #  #   # #   #
+#   #   #   # #   #   #     #   #   #   # #   # #   #   #   # #   #
+#   #   #   #  #  #   #     #   #   #   # #  #  #   # #   # #   #
 #   # ##### #   # #   # ####    #   #   #  ###  #   # #   # #   #
 
 Kirkstagram - Instagram-to-Kirkstagram link rewriting for Discord.
 "@
 
 Write-Host $banner
+
+$owner = 'iraqies'; $repo = 'kirkstagram'; $branch = 'main'
+$base = "https://raw.githubusercontent.com/$owner/$repo/$branch"
 
 $clients = @('vencord','vesktop','revenge','valenced')
 if (-not $Client -or $Client -notin $clients) {
@@ -35,83 +40,118 @@ if (-not $Client -or $Client -notin $clients) {
     } while (-not ($Client -in $clients))
 }
 
-if (-not $Root) {
-    # Find the Vencord install:
-    #  1) a Vencord checkout on disk (folder with package.json) - the buildable install
-    #  2) the default Vencord data dir (join(app.getPath("userData"), "..", "Vencord"),
-    #     src/main/utils/constants.ts:22-26) - fallback when no checkout is found
-    $found = $null
-    $candidates = Get-ChildItem -Path "D:\", "C:\Users" -Recurse -Directory -Filter Vencord -ErrorAction SilentlyContinue | Select-Object -First 10
-    foreach ($c in $candidates) {
-        if (Test-Path (Join-Path $c.FullName "package.json")) { $found = $c.FullName; break }
+function Find-VencordRoot {
+    # Prefer a real checkout (folder with package.json), then common locations
+    $dirs = Get-ChildItem -Path "D:\projects\kirkstagram\.research", "$env:USERPROFILE\Documents", "$env:USERPROFILE\Desktop" -Recurse -Directory -Filter Vencord -ErrorAction SilentlyContinue 2>$null | Select-Object -First 20
+    foreach ($d in $dirs) {
+        if (Test-Path (Join-Path $d.FullName "package.json")) { return $d.FullName }
     }
-    if (-not $found) {
-        $dataDir = Join-Path $env:APPDATA "Vencord"
-        if (Test-Path $dataDir) { $found = $dataDir }
+    foreach ($v in @("$env:APPDATA\Vencord", "$env:APPDATA\vencord")) {
+        if (Test-Path $v) { return $v }
     }
-    if (-not $found) { $found = Read-Host "Path to the $Client installation" }
-    $Root = $found
-}
-if (-not (Test-Path $Root)) { Write-Error "Path not found: $Root"; exit 1 }
-Write-Host "Found $Client install: $Root"
-
-$owner = 'iraqies'; $repo = 'kirkstagram'; $branch = 'main'
-$base = "https://raw.githubusercontent.com/$owner/$repo/$branch"
-$zipPaths = @{
-    'vencord'  = "releases/vencord/Kirkstagram.zip"
-    'vesktop'  = "releases/vencord/Kirkstagram.zip"
-    'revenge'  = "releases/revenge/com.kirkstagram.revenge@1.0.0.zip"
-    'valenced' = "releases/valenced/com.krakstagram.valenced@1.0.0.zip"
+    return $null
 }
 
-$zipPath = Join-Path $env:TEMP "Kirkstagram-$Client.zip"
-$url = "$base/$($zipPaths[$Client])"
-Write-Host "Downloading $url ..."
-Invoke-WebRequest -Uri $url -OutFile $zipPath
-Expand-Archive -Path $zipPath -DestinationPath $Root -Force
-Write-Host "Installed Kirkstagram ($Client) into $Root"
-
-# Build Vencord from the checkout. Run pnpm.exe directly: pnpm.ps1 is blocked
-# by the Restricted execution policy.
-if ($Client -in @('vencord','vesktop')) {
-    $pkg = Join-Path $Root "package.json"
+function Get-PnpmExe {
+    # Run pnpm via pnpm.exe - pnpm.ps1 is blocked by the Restricted execution policy
     $pnpmExePath = Join-Path $env:APPDATA "npm\node_modules\pnpm\pnpm.exe"
-    $pnpmExe = $null
-    if (Test-Path $pkg) {
-        if (Test-Path $pnpmExePath) {
-            $pnpmExe = Get-Item $pnpmExePath -ErrorAction SilentlyContinue
-        } else {
-            $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
-            if ($pnpm) {
-                if ($pnpm.Source -like "*.ps1") { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -ErrorAction SilentlyContinue }
-                $exe = Join-Path (Split-Path $pnpm.Source) "pnpm.exe"
-                if (Test-Path $exe) { $pnpmExe = Get-Item $exe -ErrorAction SilentlyContinue }
-            }
-        }
+    if (Test-Path $pnpmExePath) { return Get-Item $pnpmExePath -ErrorAction SilentlyContinue }
+    $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
+    if ($pnpm) {
+        if ($pnpm.Source -like "*.ps1") { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -ErrorAction SilentlyContinue }
+        $exe = Join-Path (Split-Path $pnpm.Source) "pnpm.exe"
+        if (Test-Path $exe) { return Get-Item $exe -ErrorAction SilentlyContinue }
     }
-    if ($pnpmExe) {
-        Write-Host "Building Vencord (pnpm install + pnpm build)..."
-        Push-Location $Root
-        try {
-            & $pnpmExe.FullName install
-            if ($LASTEXITCODE -eq 0) { & $pnpmExe.FullName build }
-            if ($LASTEXITCODE -eq 0) { Write-Host "Build finished." }
-            else { Write-Host "Build failed (exit code $LASTEXITCODE). Run 'pnpm install && pnpm build' in $Root manually." }
-        } finally { Pop-Location }
-        # Sync the freshly built files into the running Vencord's data dir
-        # (C:\Users\<you>\Roaming\Vencord\dist) — Vencord compiles its plugin
-        # list at build time (scripts/build/build.mjs:78), so the running
-        # client needs the new files.
-        $buildDist = Join-Path $Root "dist"
-        $dataDist = Join-Path $env:APPDATA "Vencord\dist"
-        if ((Test-Path $buildDist) -and (Test-Path $dataDist)) {
-            Write-Host "Syncing Vencord files into $dataDist ..."
-            Copy-Item -Recurse -Force "$buildDist\*" $dataDist
-            Write-Host "Synced."
-        }
-    } else {
-        Write-Host "pnpm.exe not found - run 'pnpm install && pnpm build' in $Root manually."
+    return $null
+}
+
+function Build-Vencord {
+    param([string]$Root)
+    $pnpmExe = Get-PnpmExe
+    if (-not $pnpmExe) {
+        Write-Error "pnpm.exe not found - install pnpm (npm i -g pnpm) or run the commands manually."
+        exit 1
+    }
+    Write-Host "Building Vencord (pnpm install + pnpm build)..."
+    Push-Location $Root
+    try {
+        & $pnpmExe.FullName install
+        if ($LASTEXITCODE -eq 0) { & $pnpmExe.FullName build }
+        if ($LASTEXITCODE -eq 0) { Write-Host "Build finished." }
+        else { Write-Host "Build failed (exit code $LASTEXITCODE). Run 'pnpm install && pnpm build' in $Root manually."; exit 1 }
+    } finally { Pop-Location }
+}
+
+function Sync-Vencord {
+    param([string]$Root)
+    $buildDist = Join-Path $Root "dist"
+    $dataDist = Join-Path $env:APPDATA "Vencord\dist"
+    if ((Test-Path $buildDist) -and (Test-Path $dataDist)) {
+        Write-Host "Syncing Vencord files into $dataDist ..."
+        Copy-Item -Recurse -Force "$buildDist\*" $dataDist
+        Write-Host "Synced."
     }
 }
 
-Write-Host "Next: enable Kirkstagram in the $Client Plugins panel (restart Discord if asked)."
+function Install-Vencord {
+    $vroot = $Root
+    if (-not $vroot) { $vroot = Find-VencordRoot }
+    if (-not $vroot) { Write-Error "Vencord install not found - pass -Root <VENCORD>"; exit 1 }
+    if (-not (Test-Path (Join-Path $vroot "package.json"))) { Write-Error "not a Vencord checkout: $vroot"; exit 1 }
+    Write-Host "Found vencord install: $vroot"
+
+    $zipPath = Join-Path $env:TEMP "Kirkstagram.zip"
+    Write-Host "Downloading $base/releases/vencord/Kirkstagram.zip ..."
+    Invoke-WebRequest -Uri "$base/releases/vencord/Kirkstagram.zip" -OutFile $zipPath
+    Write-Host "Installed Kirkstagram (vencord) into $vroot"
+    Expand-Archive -Path $zipPath -DestinationPath $vroot -Force
+
+    Build-Vencord $vroot
+    Sync-Vencord $vroot
+    Write-Host "Next: enable Kirkstagram in the vencord Plugins panel (restart Discord if asked)."
+}
+
+function Install-Vesktop {
+    # Vesktop loads its Vencord bundle from vencordFiles; if all files are there
+    # it uses them instead of downloading the official build. So: build the
+    # Kirkstagram-patched Vencord and drop the files into that folder.
+    $vroot = $Root
+    if (-not $vroot) { $vroot = Find-VencordRoot }
+    if (-not $vroot) { Write-Error "Vesktop flow: no Vencord checkout found - pass -Root <VENCORD>"; exit 1 }
+    if (-not (Test-Path (Join-Path $vroot "package.json"))) { Write-Error "not a Vencord checkout: $vroot"; exit 1 }
+
+    Build-Vencord $vroot
+
+    $filesDir = Join-Path $env:APPDATA "Vesktop\sessionData\vencordFiles"
+    if ($Root) {
+        if (Test-Path (Join-Path $Root "sessionData")) { $filesDir = Join-Path $Root "sessionData\vencordFiles" }
+        elseif (Test-Path (Join-Path $Root "vencordFiles")) { $filesDir = Join-Path $Root "vencordFiles" }
+        elseif (Test-Path $Root) { $filesDir = $Root }
+    }
+    New-Item -ItemType Directory -Path $filesDir -Force | Out-Null
+
+    $files = Get-ChildItem (Join-Path $vroot "dist") -Filter "vencordDesktop*" -File
+    if (-not $files) { Write-Error "no built vencord files in $vroot\dist"; exit 1 }
+    Copy-Item -Force $files -Destination $filesDir
+    Write-Host "Vesktop is now using your Kirkstagram build ($filesDir)."
+    Write-Host "Next: restart Vesktop and enable the Kirkstagram plugin in its Plugins panel."
+}
+
+function Install-Revenge {
+    Write-Host "Install the ZIP ($base/releases/revenge/com.kirkstagram.revenge@1.0.0.zip) through the app plug-in loader, or sideload it."
+    Write-Host "Then enable the plugin in the app plug-in panel and restart Discord."
+}
+
+function Install-Valenced {
+    Write-Host "Add the Kirkstagram repository to Valenced (tap the + on the Plugins page, choose ""Add a repository by URL"", enter the URL):"
+    Write-Host "  $base/releases/valenced/index.json"
+    Write-Host "Then enable the Kirkstagram plugin from the Plugins panel and restart Discord."
+    Write-Host "Sideload alternative (no repository): $base/releases/valenced/com.kirkstagram.valenced@1.0.0.zip"
+}
+
+switch ($Client) {
+    'vencord' { Install-Vencord }
+    'vesktop' { Install-Vesktop }
+    'revenge' { Install-Revenge }
+    'valenced' { Install-Valenced }
+}

@@ -17,18 +17,33 @@ and all message events fire through it.
 
 ## Install
 
-1. Build the plugin with the Vencord flow (copy `platforms/vencord/index.ts`
-   into your Vencord `src/plugins/` folder and build, or use the project's
-   `npm run build:vencord` flow).
-2. Install the plugin into Vesktop:
-   - If Vesktop is configured with a custom Vencord directory
-     (`State.store.vencordDir`, exposed in Vesktop settings), copy the built
-     plugin into that directory's Vencord plugins/userplugins location.
-   - Otherwise, copy the built plugin into the default Vencord userplugins
-     folder on your OS (the same folder standalone Vencord uses).
-3. Enable the plugin in Vesktop's Vencord **Plugins** panel and restart
-   Vesktop if it asks.
-4. Send a message with an Instagram link; verify it is converted.
+Vesktop loads its Vencord bundle from `vencordFiles`: when all files are
+there it uses them instead of downloading the official build
+(`src/main/utils/vencordLoader.ts`, `isValidVencordInstall` in
+`src/main/mainWindow.ts`). So the flow is:
+
+1. Build the Kirkstagram-patched Vencord:
+
+   ```powershell
+   cd D:\projects\kirkstagram\.research\Vencord
+   pnpm install && pnpm build
+   ```
+
+   The built bundle is `dist\vencordDesktopMain.js`,
+   `dist\vencordDesktopPreload.js`, `dist\vencordDesktopRenderer.js` and
+   `dist\vencordDesktopRenderer.css`. (The installer automates this:
+   `install.ps1 -Client vesktop`.)
+
+2. Drop those files into Vesktop's `vencordFiles` dir — the installer copies
+   them there automatically. The dir is
+   `%APPDATA%\Vesktop\sessionData\vencordFiles` (or `sessionData\vencordFiles`
+   under a custom `vencordDir`).
+
+3. **Restart Vesktop** — with valid files present it skips the download and
+   loads the patched bundle, so the **Kirkstagram** plugin appears in the
+   **Vesktop → Plugins** panel.
+
+4. Enable the plugin and send a message with an Instagram link to verify.
 
 ## Verification notes
 
