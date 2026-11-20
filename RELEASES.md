@@ -39,14 +39,18 @@ https://github.com/iraqies/kirkstagram.
 
 ## What installing puts where
 
-- **Vencord** — extracts into `<VENCORD>`: `src/plugins/kirkstagram/index.ts`
-  (the plugin) and `src/packages/core/src/` (the shared conversion engine).
-  Build Vencord with `pnpm build` so the plugin compiles with the rest of
-  Vencord, then enable **Kirkstagram** in **Settings → Vencord → Plugins**.
-  Note: Vencord compiles plugins from `src/plugins` and `src/userplugins`
-  (verified: `scripts/build/build.mjs:78`, `scripts/build/common.mjs:162`) —
-  so `-Root` should be your Vencord checkout (the folder with `src/` and
-  `package.json`), not the Vencord data dir (`%APPDATA%\Vencord`).
+- **Vencord** — the installer auto-finds the Vencord install: default is the
+  Vencord data dir `%APPDATA%\Vencord` (verified default in
+  `src/main/utils/constants.ts:22-26`); otherwise it searches `D:\` and
+  `C:\Users` for a Vencord checkout (a folder with `package.json` — finds
+  `.research\Vencord` on this machine). When it finds a checkout, it runs
+  `pnpm build` in it. The plugin lands at
+  `<VENCORD>\src\plugins\kirkstagram\index.ts` +
+  `<VENCORD>\src\packages\core\src/` — and Vencord compiles plugins from
+  `src/plugins` and `src/userplugins` at build time (verified:
+  `scripts/build/build.mjs:78`, `scripts/build/common.mjs:162`), so the
+  plugin appears in the Plugins panel after the build + reload.
+  Pass `-Root <VENCORD>` to skip the auto-search.
 - **Revenge** — extracts into `<revenge-plugin-template>`:
   `plugins/kirkstagram/` (plugin + manifest) and `packages/core/src/` (the
   shared engine). Install the ZIP in the app (see the `revenge-plugin-template`
