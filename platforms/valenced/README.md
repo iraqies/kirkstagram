@@ -1,0 +1,81 @@
+# Kirkstagram — Valenced adapter
+
+Rewrites Instagram links in outgoing messages before Discord sends them.
+
+## Interception target
+
+The adapter patches the metro common module's `messageUtil.sendMessage`.
+Verified in the app bundle (`revenge-bundle/src/lib/api/commands/index.ts`
+and `src/core/commands/*`):
+
+```ts
+messageUtil.sendMessage(channelId, { content }, options, extra)
+```
+
+The adapter uses `@valenced/patcher`'s `before` hook, which receives the
+arguments as an array, mutates the message object's `content`, and returns
+the arguments array.
+
+Modules are located with `@valenced/modules/finders` (`lookupModules`) and
+filters from `@valenced/modules/finders/filters` (`withProps`).
+
+## Build
+
+1. Copy the plugin into the **valenced-plugin-template** folder:
+
+   ```sh
+   mkdir -p <valenced-plugin-template>/plugins/kirkstagram
+   cp platforms/valenced/index.js platforms/valenced/manifest.json <valenced-plugin-template>/plugins/kirkstagram/
+   ```
+
+   Replace `<valenced-plugin-template>` with the path of your
+   `valenced-plugin-template` checkout.
+
+2. Adjust the core import in `index.js`: from
+   `<valenced-plugin-template>/plugins/kirkstagram/`, point it to
+   `<KIRKSTAGRAM>/packages/core/src/index` with a relative path. Example:
+   `../../../kirkstagram/packages/core/src/index` when the two checkouts are
+   siblings under one directory.
+
+3. Build the ZIP:
+
+   ```sh
+   cd <valenced-plugin-template>
+   valenced-plugin build
+   ```
+
+   Produces `build/dist/com.kirkstagram.valenced@1.0.0.zip`.
+
+## Install
+
+1. Install: sideload the ZIP via
+   **Settings > Valenced > Plugins > Install from file**, or add the ZIP to a
+   Valenced repository (see the *Installing Add-ons* guide in the Valenced
+   docs).
+2. Enable the plugin from the Plugins panel and restart Discord.
+
+Or install the prebuilt artifact: `releases/valenced/com.kirkstagram.valenced@1.0.0.zip`
+(see [RELEASES.md](RELEASES.md)).
+
+## Config
+
+- Defaults come from the shared core (`DEFAULT_CONFIG`).
+- `start({ jsonStorage })` reads persisted settings from the plugin's
+  storage (`jsonStorage.cache`); writes are not part of this adapter.
+
+| Setting | Default |
+| --- | --- |
+| `enabled` | `true` |
+| `replacementDomain` | `www.kirkstagram.com` |
+| `convertReels` / `convertPosts` / `convertTV` / `convertStories` | `true` |
+| `convertOnEdit` | `true` |
+
+## Verification (device)
+
+- Send `Check this out https://www.instagram.com/reel/ABC123/`; confirm
+  `[instagram.com/reel/ABC123](https://www.kirkstagram.com/reel/ABC123/)`
+  is sent.
+- Edit a message and add an Instagram link; confirm conversion.
+- Check the Valenced Debug Logs screen for errors during the patch.
+
+Documentation: https://valenced.app/docs/plugin-development/

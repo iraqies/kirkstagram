@@ -1,0 +1,13 @@
+{
+	"name": "kirkstagram",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test": "node --test",
+		"build:vencord": "echo \"Vencord plugin: platforms/vencord/index.ts — copy into Vencord src/plugins/\"",
+		"build:revenge": "cd platforms/revenge && revenge-plugin build",
+		"build:valenced": "cd platforms/valenced && valenced-plugin build",
+		"build:releases": "node scripts\\build-releases.mjs"
+	}
+}

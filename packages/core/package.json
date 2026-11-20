@@ -1,0 +1,10 @@
+{
+	"name": "@kirkstagram/core",
+	"version": "1.0.0",
+	"description": "Shared Instagram-to-Kirkstagram URL conversion engine",
+	"private": true,
+	"main": "src/index.ts",
+	"exports": {
+		".": "./src/index.ts"
+	}
+}

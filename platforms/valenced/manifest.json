@@ -1,0 +1,19 @@
+{
+	"format": 1,
+	"id": "com.kirkstagram.valenced",
+	"name": "Kirkstagram",
+	"description": "Rewrites Instagram links into Kirkstagram links before sending",
+	"version": "1.0.0",
+	"author": "Kirkstagram contributors",
+	"dependencies": {
+		"valenced.api": {
+			"version": ">=1 <2"
+		},
+		"discord": {
+			"version": "*"
+		}
+	},
+	"dist": {
+		"script": "index.js"
+	}
+}
