@@ -9,7 +9,7 @@
 # From a local checkout:
 #   powershell install.ps1 -Client vencord -Root <VENCORD>
 param(
-    [ValidateSet('vencord','vesktop','revenge','valenced')][string]$Client,
+    [string]$Client,
     [string]$Root
 )
 
