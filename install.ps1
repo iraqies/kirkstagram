@@ -1,15 +1,5 @@
 # SPDX-License-Identifier: MIT
-$banner = @"
-
- __   __  ___  ___  _        
-|  \/  | / _ \|_  | |        
-|   \/ | | | |  | | |        
-|   |  | |_| |  | | |__      
-|_|  |_|\___/   |_|\___/     
-
-Kirkstagram - Instagram-to-Kirkstagram link rewriting for Discord.
-"@
-
+#
 # Kirkstagram — one-command installer for PowerShell.
 #
 # Spicetify-style one-liner:
@@ -22,6 +12,17 @@ param(
     [ValidateSet('vencord','vesktop','revenge','valenced')][string]$Client,
     [string]$Root
 )
+
+$banner = @"
+
+ __   __  ___  ___  _        
+|  \/  | / _ \|_  | |        
+|   \/ | | | |  | | |        
+|   |  | |_| |  | | |__      
+|_|  |_|\___/   |_|\___/     
+
+Kirkstagram - Instagram-to-Kirkstagram link rewriting for Discord.
+"@
 
 $owner = 'iraqies'; $repo = 'kirkstagram'; $branch = 'main'
 $base = "https://raw.githubusercontent.com/$owner/$repo/$branch"
