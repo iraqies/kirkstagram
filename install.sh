@@ -8,6 +8,31 @@
 #   sh install.sh [-Client vencord|vesktop|equicord|revenge|valenced] [-Root <dir>] [-Gui]
 set -e
 
+# When piped (`curl ... | sh`), stdin is the script; save to a temp file and
+# re-exec with /dev/tty so the interactive picker can read user input.
+if [ ! -t 0 ]; then
+    __kirk_tmp="$(mktemp "${TMPDIR:-/tmp}/kirkstagram-install.XXXXXX")"
+    cat > "$__kirk_tmp"
+    if [ -r /dev/tty ]; then
+        sh "$__kirk_tmp" "$@" </dev/tty
+        __kirk_rc=$?
+    else
+        # No controlling tty; allow non-interactive use when -Client is provided.
+        case " $* " in
+            *" -Client "*|*" --client "*|*" -client "*)
+                sh "$__kirk_tmp" "$@"
+                __kirk_rc=$?
+                ;;
+            *)
+                printf 'install.sh: no interactive terminal; pass -Client vencord|vesktop|equicord\n' >&2
+                __kirk_rc=1
+                ;;
+        esac
+    fi
+    rm -f "$__kirk_tmp"
+    exit "$__kirk_rc"
+fi
+
 owner="iraqies"; repo="kirkstagram"; branch="main"
 base="https://raw.githubusercontent.com/$owner/$repo/$branch"
 
@@ -126,14 +151,6 @@ select_client_console() {
 }
 
 select_client() {
-    # When piped (`curl ... | sh`), stdin is the script; read from /dev/tty instead.
-    if [ ! -t 0 ]; then
-        if [ -r /dev/tty ]; then
-            exec </dev/tty
-        else
-            die "no interactive terminal; pass -Client vencord|vesktop|equicord"
-        fi
-    fi
     if [ "$gui" = "1" ]; then
         local g; g="$(select_client_gui)" && { client="$g"; return 0; }
     fi
