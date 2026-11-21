@@ -8,44 +8,105 @@
 # Usage:
 #   powershell install.ps1 -Client vencord -Root <VENCORD>
 #   powershell install.ps1 -Client vesktop -Root <VESVESKTOP dir or vencordFiles dir>
+#   powershell install.ps1 -Gui   # graphical picker (mouse + keyboard)
 #
 # (macOS/Linux users: install.sh - `sh install.sh -Client vencord`)
 param(
     [string]$Client,
-    [string]$Root
+    [string]$Root,
+    [switch]$Gui
 )
 
 $ascii = @"
-KIRKSTAGRAM
-===========
-
-  _____ _   _ _   _  ____ _____   ____ _   _ ___ _   _ 
-  | ____| \ | | \ | |/ ___| ____| / ___| | | |_ _| \ | |
-  |  _| |  \| |  \| | |  _|  _|   | |   | |_| || ||  \| |
-  | |___| |\  | |\  | |_| | |___  | |___|  _  || || |\  |
-  |_____|_| \_|_| \_|\____|_____|  \____|_| |_|___|_| \_|
+██╗  ██╗ ██╗ ██████╗  ██╗  ██╗ ███████╗ ████████╗  █████╗   ██████╗  ██████╗   █████╗  ███╗   ███╗
+██║ ██╔╝ ██║ ██╔══██╗ ██║ ██╔╝ ██╔════╝ ╚══██╔══╝ ██╔══██╗ ██╔════╝  ██╔══██╗ ██╔══██╗ ████╗ ████║
+█████╔╝  ██║ ██████╔╝ █████╔╝  ███████╗    ██║    ███████║ ██║  ███╗ ██████╔╝ ███████║ ██╔████╔██║
+██╔═██╗  ██║ ██╔══██╗ ██╔═██╗  ╚════██║    ██║    ██╔══██║ ██║   ██║ ██╔══██╗ ██╔══██║ ██║╚██╔╝██║
+██║  ██╗ ██║ ██║  ██║ ██║  ██╗ ███████║    ██║    ██║  ██║ ╚██████╔╝ ██║  ██║ ██║  ██║ ██║ ╚═╝ ██║
+╚═╝  ╚═╝ ╚═╝ ╚═╝  ╚═╝ ╚═╝  ╚═╝ ╚══════╝    ╚═╝    ╚═╝  ╚═╝  ╚═════╝  ╚═╝  ╚═╝ ╚═╝  ╚═╝ ╚═╝     ╚═╝
 
   Instagram -> Kirkstagram link rewriting for Discord
   https://github.com/iraqies/kirkstagram
+
+  Windows:      iwr -useb https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.ps1 | iex
+  macOS/Linux:  curl -fsSL https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.sh | sh
 "@
+
+# The banner uses Unicode box-drawing glyphs (OpenTUI "block" ASCII font);
+# make sure the console decodes UTF-8 so they render instead of mojibake.
+try {
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    $OutputEncoding = [System.Text.Encoding]::UTF8
+} catch {}
 
 Write-Host $ascii
 
 $owner = 'iraqies'; $repo = 'kirkstagram'; $branch = 'main'
 $base = "https://raw.githubusercontent.com/$owner/$repo/$branch"
 
+function Select-ClientMenu {
+    param([string[]]$Clients, [string]$Title = "Which Discord client mod are you using?")
+    if (-not $Clients -or $Clients.Count -eq 0) { return $null }
+
+    # Graphical picker (mouse + keyboard) when requested and available.
+    if ($Gui) {
+        try {
+            $picked = $Clients | Out-GridView -Title "Kirkstagram - $Title" -OutputMode Single
+            if ($picked) { return $picked }
+        } catch {}
+    }
+
+    # Console arrow-key menu.
+    try {
+        $index = 0
+        while ($true) {
+            Clear-Host
+            Write-Host ""
+            Write-Host "  $Title" -ForegroundColor Cyan
+            Write-Host ""
+            for ($i = 0; $i -lt $Clients.Count; $i++) {
+                $marker = if ($i -eq $index) { ">" } else { " " }
+                $color  = if ($i -eq $index) { "Yellow" } else { "Gray" }
+                Write-Host ("  {0} {1}" -f $marker, $Clients[$i]) -ForegroundColor $color
+            }
+            Write-Host ""
+            Write-Host "  Up/Down arrows to move - Enter to select - Esc to cancel" -ForegroundColor DarkGray
+            $key = [Console]::ReadKey($true)
+            switch ($key.Key) {
+                'UpArrow'   { $index = ($index - 1 + $Clients.Count) % $Clients.Count }
+                'DownArrow' { $index = ($index + 1) % $Clients.Count }
+                'Enter'     { Clear-Host; return $Clients[$index] }
+                'Escape'    { Clear-Host; return $null }
+            }
+        }
+    } catch {
+        try {
+            $choice = Read-Host "Which client? [$($Clients -join '|')]"
+            if ($choice -in $Clients) { return $choice }
+        } catch {}
+        return $null
+    }
+}
+
 $clients = @('vencord','vesktop','revenge','valenced','equicord')
+if (-not $Client) {
+    $Client = Select-ClientMenu -Clients $clients
+}
 if (-not $Client -or $Client -notin $clients) {
-    do {
-        $Client = Read-Host "Which client? [vencord|vesktop|revenge|valenced]"
-    } while (-not ($Client -in $clients))
+    Write-Error "No client selected."
+    exit 1
 }
 
 function Find-VencordRoot {
-    # Prefer a real checkout (folder with package.json), then common locations
-    $dirs = Get-ChildItem -Path "D:\projects\kirkstagram\.research", "$env:USERPROFILE\Documents", "$env:USERPROFILE\Desktop" -Recurse -Directory -Filter Vencord -ErrorAction SilentlyContinue 2>$null | Select-Object -First 20
-    foreach ($d in $dirs) {
-        if (Test-Path (Join-Path $d.FullName "package.json")) { return $d.FullName }
+    # Prefer a real checkout (folder with package.json), then common locations.
+    $searchRoots = @("$env:USERPROFILE\Documents", "$env:USERPROFILE\Desktop", "$env:USERPROFILE\source", "$env:USERPROFILE\repos") |
+        Where-Object { $_ -and (Test-Path $_) }
+    foreach ($root in $searchRoots) {
+        $dirs = Get-ChildItem -Path $root -Recurse -Directory -Filter Vencord -ErrorAction SilentlyContinue |
+            Select-Object -First 20
+        foreach ($d in $dirs) {
+            if (Test-Path (Join-Path $d.FullName "package.json")) { return $d.FullName }
+        }
     }
     foreach ($v in @("$env:APPDATA\Vencord", "$env:APPDATA\vencord")) {
         if (Test-Path $v) { return $v }

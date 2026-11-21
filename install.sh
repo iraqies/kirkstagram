@@ -5,7 +5,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.sh | sh
 #
 # Usage:
-#   sh install.sh [-Client vencord|vesktop|revenge|valenced] [-Root <dir>]
+#   sh install.sh [-Client vencord|vesktop|revenge|valenced|equicord] [-Root <dir>] [-Gui]
 set -e
 
 owner="iraqies"; repo="kirkstagram"; branch="main"
@@ -21,34 +21,126 @@ case "$os" in
 esac
 
 # --- arguments ---
-client=""; root=""
+client=""; root=""; gui=""
 while [ $# -gt 0 ]; do
     case "$1" in
         -Client|--client) [ $# -ge 2 ] || die "-Client requires a value"; client="$2"; shift 2 ;;
         -Root|--root) [ $# -ge 2 ] || die "-Root requires a value"; root="$2"; shift 2 ;;
+        -Gui|--gui) gui=1; shift ;;
         *) die "unknown argument: $1" ;;
     esac
 done
 
 cat <<'BANNER'
 
-KIRKSTAGRAM
-===========
-
-  _____ _   _ _   _  ____ _____   ____ _   _ ___ _   _ 
-  | ____| \ | | \ | |/ ___| ____| / ___| | | |_ _| \ | |
-  |  _| |  \| |  \| | |  _|  _|   | |   | |_| || ||  \| |
-  | |___| |\  | |\  | |_| | |___  | |___|  _  || || |\  |
-  |_____|_| \_|_| \_|\____|_____|  \____|_| |_|___|_| \_|
+██╗  ██╗ ██╗ ██████╗  ██╗  ██╗ ███████╗ ████████╗  █████╗   ██████╗  ██████╗   █████╗  ███╗   ███╗
+██║ ██╔╝ ██║ ██╔══██╗ ██║ ██╔╝ ██╔════╝ ╚══██╔══╝ ██╔══██╗ ██╔════╝  ██╔══██╗ ██╔══██╗ ████╗ ████║
+█████╔╝  ██║ ██████╔╝ █████╔╝  ███████╗    ██║    ███████║ ██║  ███╗ ██████╔╝ ███████║ ██╔████╔██║
+██╔═██╗  ██║ ██╔══██╗ ██╔═██╗  ╚════██║    ██║    ██╔══██║ ██║   ██║ ██╔══██╗ ██╔══██║ ██║╚██╔╝██║
+██║  ██╗ ██║ ██║  ██║ ██║  ██╗ ███████║    ██║    ██║  ██║ ╚██████╔╝ ██║  ██║ ██║  ██║ ██║ ╚═╝ ██║
+╚═╝  ╚═╝ ╚═╝ ╚═╝  ╚═╝ ╚═╝  ╚═╝ ╚══════╝    ╚═╝    ╚═╝  ╚═╝  ╚═════╝  ╚═╝  ╚═╝ ╚═╝  ╚═╝ ╚═╝     ╚═╝
 
   Instagram -> Kirkstagram link rewriting for Discord
   https://github.com/iraqies/kirkstagram
+
+  Windows:      iwr -useb https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.ps1 | iex
+  macOS/Linux:  curl -fsSL https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.sh | sh
 BANNER
 
 clients="vencord|vesktop|revenge|valenced|equicord"
+
+client_lower() { printf '%s\n' "$1" | tr '[:upper:]' '[:lower:]'; }
+
+# Graphical picker (mouse + keyboard) when available.
+select_client_gui() {
+    case "$(uname -s)" in
+        Darwin)
+            command -v osascript >/dev/null 2>&1 || return 1
+            local chosen
+            chosen="$(osascript -e 'choose from list {"Vencord", "Vesktop", "Revenge", "Valenced", "Equicord"} with title "Kirkstagram" with prompt "Which Discord client mod are you using?"' 2>/dev/null | tr -d '\r')"
+            [ -n "$chosen" ] && [ "$chosen" != "false" ] || return 1
+            client_lower "$chosen"
+            ;;
+        Linux)
+            if command -v zenity >/dev/null 2>&1; then
+                local chosen
+                chosen="$(zenity --list --title="Kirkstagram" --text="Which Discord client mod are you using?" --column="Client" "Vencord" "Vesktop" "Revenge" "Valenced" "Equicord" 2>/dev/null)"
+                [ -n "$chosen" ] || return 1
+                client_lower "$chosen"
+            elif command -v kdialog >/dev/null 2>&1; then
+                local chosen
+                chosen="$(kdialog --menu "Kirkstagram" 1 "Vencord" 2 "Vesktop" 3 "Revenge" 4 "Valenced" 5 "Equicord" --title "Which Discord client mod are you using?" 2>/dev/null)"
+                [ -n "$chosen" ] || return 1
+                case "$chosen" in
+                    1) printf 'vencord\n' ;; 2) printf 'vesktop\n' ;; 3) printf 'revenge\n' ;;
+                    4) printf 'valenced\n' ;; 5) printf 'equicord\n' ;; *) return 1 ;;
+                esac
+            else
+                return 1
+            fi
+            ;;
+        *) return 1 ;;
+    esac
+}
+
+# Console arrow-key menu (bash).
+select_client_console() {
+    local items=(vencord vesktop revenge valenced equicord)
+    local count=${#items[@]}
+    local index=0
+    while :; do
+        clear 2>/dev/null || printf '\033[2J\033[H'
+        printf 'Which Discord client mod are you using?\n\n'
+        local i=0
+        for item in "${items[@]}"; do
+            if [ "$i" -eq "$index" ]; then printf '  > %s\n' "$item"; else printf '    %s\n' "$item"; fi
+            i=$((i+1))
+        done
+        printf '\n  Up/Down arrows to move - Enter to select - q to cancel\n'
+        local key
+        IFS= read -r -n 1 -s key
+        case "$key" in
+            "$(printf '\033')")
+                IFS= read -r -n 1 -s k2
+                IFS= read -r -n 1 -s k3
+                if [ "$k2" = "[" ] && [ "$k3" = "A" ]; then
+                    index=$(( (index - 1 + count) % count ))
+                elif [ "$k2" = "[" ] && [ "$k3" = "B" ]; then
+                    index=$(( (index + 1) % count ))
+                fi
+                ;;
+            "$(printf '\r')"|"$(printf '\n')")
+                printf '\n'
+                printf '%s\n' "${items[$index]}"
+                return 0
+                ;;
+            q|Q)
+                return 1
+                ;;
+        esac
+    done
+}
+
+select_client() {
+    if [ "$gui" = "1" ]; then
+        local g; g="$(select_client_gui)" && { client="$g"; return 0; }
+    fi
+    if [ -n "$BASH_VERSION" ]; then
+        select_client_console && return 0
+    fi
+    # Numbered fallback (POSIX sh).
+    printf 'Which Discord client mod are you using?\n'
+    printf '  1) vencord\n  2) vesktop\n  3) revenge\n  4) valenced\n  5) equicord\n'
+    local n
+    IFS= read -r n
+    case "$n" in
+        1) client=vencord ;; 2) client=vesktop ;; 3) client=revenge ;;
+        4) client=valenced ;; 5) client=equicord ;; *) return 1 ;;
+    esac
+}
+
 if [ -z "$client" ]; then
-    printf 'Which client? [%s]: ' "$clients"
-    IFS= read -r client
+    select_client || die "no client selected"
 fi
 case "$client" in
     vencord|vesktop|revenge|valenced|equicord) ;;
