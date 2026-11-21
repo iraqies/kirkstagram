@@ -101,17 +101,19 @@ if (-not $Client -or $Client -notin $allClients) {
 }
 
 function Find-VencordRoot {
+    param([string]$Name = "Vencord")
     # Prefer a real checkout (folder with package.json), then common locations.
     $searchRoots = @("$env:USERPROFILE\Documents", "$env:USERPROFILE\Desktop", "$env:USERPROFILE\source", "$env:USERPROFILE\repos") |
         Where-Object { $_ -and (Test-Path $_) }
     foreach ($root in $searchRoots) {
-        $dirs = Get-ChildItem -Path $root -Recurse -Directory -Filter Vencord -ErrorAction SilentlyContinue |
+        $dirs = Get-ChildItem -Path $root -Recurse -Directory -Filter $Name -ErrorAction SilentlyContinue |
             Select-Object -First 20
         foreach ($d in $dirs) {
             if (Test-Path (Join-Path $d.FullName "package.json")) { return $d.FullName }
         }
     }
-    foreach ($v in @("$env:APPDATA\Vencord", "$env:APPDATA\vencord")) {
+    $appDataName = $Name
+    foreach ($v in @("$env:APPDATA\$appDataName", "$env:APPDATA\$($appDataName.ToLower())")) {
         if (Test-Path $v) { return $v }
     }
     return $null
@@ -148,11 +150,11 @@ function Build-Vencord {
 }
 
 function Sync-Vencord {
-    param([string]$Root)
+    param([string]$Root, [string]$Name = "Vencord")
     $buildDist = Join-Path $Root "dist"
-    $dataDist = Join-Path $env:APPDATA "Vencord\dist"
+    $dataDist = Join-Path $env:APPDATA "$Name\dist"
     if ((Test-Path $buildDist) -and (Test-Path $dataDist)) {
-        Write-Host "Syncing Vencord files into $dataDist ..."
+        Write-Host "Syncing $Name files into $dataDist ..."
         Copy-Item -Recurse -Force "$buildDist\*" $dataDist
         Write-Host "Synced."
     }
@@ -229,7 +231,7 @@ function Install-Valenced {
 function Install-Equicord {
     # Equicord is Vencord-based and uses the same Vencord plugin system.
     $vroot = $Root
-    if (-not $vroot) { $vroot = Find-VencordRoot }
+    if (-not $vroot) { $vroot = Find-VencordRoot -Name "Equicord" }
     if (-not $vroot) { Write-Error "Equicord flow: no Equicord checkout found - pass -Root <EQUICORD>"; exit 1 }
     if (-not (Test-Path (Join-Path $vroot "package.json"))) { Write-Error "not an Equicord checkout: $vroot"; exit 1 }
     Write-Host "Found Equicord checkout: $vroot"
@@ -241,7 +243,7 @@ function Install-Equicord {
     Expand-Archive -Path $zipPath -DestinationPath $vroot -Force
 
     Build-Vencord $vroot
-    Sync-Vencord $vroot
+    Sync-Vencord $vroot -Name "Equicord"
     Write-Host "Next: enable Kirkstagram in the Equicord Plugins panel (restart Discord if asked)."
 }
 

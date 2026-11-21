@@ -181,27 +181,31 @@ esac
 # --- helpers ---
 find_vencord_root() {
     # Prefer a real checkout (folder with package.json); common locations where
-    # Vencord is usually cloned/checked out on macOS and Linux.
+    # Vencord/Equicord is usually cloned/checked out on macOS and Linux.
+    local name="${1:-Vencord}"
     local c
     for c in \
-        "$HOME/Vencord" "$HOME/dev/Vencord" "$HOME/projects/Vencord" \
-        "$HOME/Projects/Vencord" "$HOME/code/Vencord" "$HOME/Documents/Vencord" \
-        "$HOME/Desktop/Vencord" "/opt/Vencord" "/usr/local/Vencord" \
-        "$HOME/.config/Vencord" "$HOME/Library/Application Support/Vencord"
+        "$HOME/$name" "$HOME/dev/$name" "$HOME/projects/$name" \
+        "$HOME/Projects/$name" "$HOME/code/$name" "$HOME/Documents/$name" \
+        "$HOME/Desktop/$name" "/opt/$name" "/usr/local/$name" \
+        "$HOME/.config/$name" "$HOME/Library/Application Support/$name"
     do
         if [ -f "$c/package.json" ]; then echo "$c"; return 0; fi
     done
     return 0
 }
 
-# The Vencord data dir on POSIX, mirroring src/main/utils/constants.ts:
+# The Vencord/Equicord data dir on POSIX, mirroring src/main/utils/constants.ts:
 # join(app.getPath("userData"), "..", "Vencord")
 vencord_data_dir() {
-    local ud="$HOME/.config/vencord"
-    if [ -d "$HOME/Library/Application Support/vencord" ]; then
-        ud="$HOME/Library/Application Support/vencord"
+    local name="${1:-Vencord}"
+    local lower
+    lower="$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')"
+    local ud="$HOME/.config/$lower"
+    if [ -d "$HOME/Library/Application Support/$lower" ]; then
+        ud="$HOME/Library/Application Support/$lower"
     fi
-    printf '%s/Vencord\n' "$(dirname "$ud")"
+    printf '%s/%s\n' "$(dirname "$ud")" "$name"
 }
 
 find_vesktop_files_dirs() {
@@ -320,7 +324,7 @@ flow_valenced() {
 flow_equicord() {
     # Equicord is Vencord-based and uses the same Vencord plugin system.
     local vroot="$root"
-    if [ -z "$vroot" ]; then vroot="$(find_vencord_root)"; fi
+    if [ -z "$vroot" ]; then vroot="$(find_vencord_root Equicord)"; fi
     if [ -z "$vroot" ]; then
         die "Equicord install not found - pass -Root <EQUICORD>"
     fi
@@ -337,7 +341,7 @@ flow_equicord() {
     build_vencord "$vroot"
 
     local dd
-    dd="$(vencord_data_dir)"
+    dd="$(vencord_data_dir Equicord)"
     mkdir -p "$dd/dist"
     cp -r "$vroot"/dist/. "$dd/dist/"
     printf 'Synced built files into %s/dist\n' "$dd"
