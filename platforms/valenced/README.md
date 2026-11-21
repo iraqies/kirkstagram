@@ -4,20 +4,22 @@ Rewrites Instagram links in outgoing messages before Discord sends them.
 
 ## Interception target
 
-The adapter patches the metro common module's `messageUtil.sendMessage`.
-Verified in the app bundle (`revenge-bundle/src/lib/api/commands/index.ts`
-and `src/core/commands/*`):
+On the mobile bundle the adapter patches the metro "Messages" module's
+`default.sendMessage` (the community-proven target; see the Valenced
+community plugin `clear-urls`), and falls back to patching any
+`messageUtil.sendMessage` where present:
 
 ```ts
-messageUtil.sendMessage(channelId, { content }, options, extra)
+Messages.default.sendMessage(channelId, { content }, options, extra)
 ```
 
 The adapter uses `@valenced/patcher`'s `before` hook, which receives the
 arguments as an array, mutates the message object's `content`, and returns
-the arguments array.
+the arguments array (string payloads are replaced in the args array).
 
-Modules are located with `@valenced/modules/finders` (`lookupModules`) and
-filters from `@valenced/modules/finders/filters` (`withProps`).
+Modules are located with `@valenced/modules/finders` (`getModules`,
+`lookupModules`) and filters from `@valenced/modules/finders/filters`
+(`withName`, `withProps`).
 
 ## Build
 
