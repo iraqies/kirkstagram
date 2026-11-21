@@ -19,7 +19,6 @@
  * core engine (../../packages/core/src/index).
  */
 import { MessageObject } from "@api/MessageEvents";
-import { addPatch } from "@api/PluginManager";
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import {
@@ -77,20 +76,45 @@ function getConfig(): KirkstagramConfig {
 }
 
 function rewriteMessage(msg: MessageObject): void {
+	if (typeof msg.content !== "string") return;
 	const cfg = getConfig();
 	if (!cfg.enabled) return;
 	const next = rewriteInstagramUrls(msg.content, cfg);
 	if (next !== msg.content) msg.content = next;
 }
 
-// Discord's send entry point: `Ti` builds the outgoing message object (`i`)
-// and calls `Ut.sendMessage(e, i, o, n)`. The patch rewrites `i.content`
-// right before Discord queues the message.
-const sendPatch = {
+// Discord's send entry points: each client build renames its internals, so
+// the plugin declares one patch per known entry and they are idempotent.
+//
+// - Standalone builds: `Ti` builds the outgoing message object (`i`) and
+//   calls `Ut.sendMessage(e, i, o, n)`; the patch rewrites `i.content`
+//   right before Discord queues the message.
+// - Vesktop: `async _sendMessage(e,t,n)` holds the outgoing message in `t`
+//   and queues it; `async editMessage(e,t,n)` holds the edited payload in `n`.
+//
+// Static patches are registered during plugin init, before the Discord
+// webpack modules run, and the rewrite call happens at send time.
+const tiPatch = {
 	find: 'function Ti(e,t,o=!0,n={}){let i={content:"",invalidEmojis:[],tts:!1,validNonShortcutEmojis:[],...t};return Ut.sendMessage(e,i,o,n)}',
 	replacement: {
 		match: "Ut.sendMessage(e,i,o,n)",
 		replace: "Ut.sendMessage(e,(globalThis.kirkstagramRewrite?.(i),i),o,n)"
+	}
+};
+
+const sendPatch = {
+	find: "async _sendMessage(",
+	replacement: {
+		match: /async _sendMessage\((\w+),(\w+)((?:,\w+)*)\)\{/,
+		replace: "async _sendMessage($1,$2$3){globalThis.kirkstagramRewrite?.($2);"
+	}
+};
+
+const editPatch = {
+	find: "async editMessage(",
+	replacement: {
+		match: /async editMessage\((\w+),(\w+),(\w+)((?:,\w+)*)\)\{/,
+		replace: "async editMessage($1,$2,$3$4){globalThis.kirkstagramRewrite?.($3);"
 	}
 };
 
@@ -102,15 +126,9 @@ export default definePlugin({
 	tags: ["Utility"],
 	authors: [{ name: "Kirkstagram contributors", id: 0n }],
 	settings,
+	patches: [tiPatch, sendPatch, editPatch],
 	start() {
 		patchTarget.kirkstagramRewrite = rewriteMessage;
-		try {
-			addPatch(sendPatch, "Kirkstagram");
-		} catch {
-			// If the Discord build drifts again the patch silently no-ops;
-			// the onBeforeMessageSend listener still fires via MessageEventsAPI
-			// on builds where its patches match.
-		}
 	},
 	onBeforeMessageSend(_channelId, msg) {
 		rewriteMessage(msg);
