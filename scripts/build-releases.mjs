@@ -65,19 +65,18 @@ writeFileSync(join(jsDir, "index.js"), jsContent);
 zip(revenge, ["plugins", "packages"], join(out, "revenge/com.kirkstagram.revenge@1.0.0.zip"));
 
 // --- Valenced: extracts into <@valenced-plugin-template> root ---
-// Archive contents: plugins/kirkstagram/{index.js, js/index.js, manifest.json} + packages/core/src/*
+// Archive contents: manifest.json + the bundled plugin script index.js.
+// The script is built with the Valenced plugin toolchain
+// (`valenced-plugin build` equivalent; see `.research/valenced-plugin-template/bundle.mjs`):
+// external @valenced/* imports become `valenced.*` globals and the shared
+// core engine is inlined, so the artifact is self-contained.
 const valenced = stageDir("valenced");
-copyFile(join(root, "platforms/valenced/index.js"), join(valenced, "plugins/kirkstagram"));
-copyFile(join(root, "platforms/valenced/manifest.json"), join(valenced, "plugins/kirkstagram"));
-copyCore(join(valenced, "packages/core/src"));
-mkdirSync(join(valenced, "plugins/kirkstagram/js"), { recursive: true });
-const valjsDir = join(valenced, "plugins/kirkstagram/js");
-const valJsContent = readFileSync(join(root, "platforms/valenced/index.js"), "utf8").replaceAll(
-	"../../packages/core/src/index",
-	"../../../packages/core/src/index",
+copyFile(join(root, "platforms/valenced/manifest.json"), valenced);
+copyFile(
+	join(root, ".research", "valenced-plugin-template", "plugins", "kirkstagram", "build", "js", "index.js"),
+	valenced,
 );
-writeFileSync(join(valjsDir, "index.js"), valJsContent);
-zip(valenced, ["plugins", "packages"], join(out, "valenced/com.kirkstagram.valenced@1.0.0.zip"));
+zip(valenced, ["manifest.json", "index.js"], join(out, "valenced/com.kirkstagram.valenced@1.0.0.zip"));
 
 console.log("Release artifacts built under releases/:");
 for (const f of [
