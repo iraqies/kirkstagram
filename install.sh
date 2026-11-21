@@ -126,6 +126,14 @@ select_client_console() {
 }
 
 select_client() {
+    # When piped (`curl ... | sh`), stdin is the script; read from /dev/tty instead.
+    if [ ! -t 0 ]; then
+        if [ -r /dev/tty ]; then
+            exec </dev/tty
+        else
+            die "no interactive terminal; pass -Client vencord|vesktop|equicord"
+        fi
+    fi
     if [ "$gui" = "1" ]; then
         local g; g="$(select_client_gui)" && { client="$g"; return 0; }
     fi
