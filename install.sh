@@ -11,17 +11,20 @@ set -e
 # When piped (`curl ... | sh`), stdin is the script; save to a temp file and
 # re-exec with /dev/tty so the interactive picker can read user input.
 if [ ! -t 0 ]; then
-    __kirk_tmp="$(mktemp "${TMPDIR:-/tmp}/kirkstagram-install.XXXXXX")"
-    cat > "$__kirk_tmp"
-    if [ -r /dev/tty ]; then
-        sh "$__kirk_tmp" "$@" </dev/tty
-        __kirk_rc=$?
+    __kirk_tmp="$(mktemp "${TMPDIR:-/tmp}/kirkstagram-install.XXXXXX" 2>/dev/null || printf '%s\n' "${TMPDIR:-/tmp}/kirkstagram-install.$$")"
+    cat > "$__kirk_tmp" || { printf 'install.sh: failed to write temp file\n' >&2; exit 1; }
+    if [ ! -s "$__kirk_tmp" ]; then
+        printf 'install.sh: failed to read piped script (empty). Try downloading the script to a file and running it with sh.\n' >&2
+        rm -f "$__kirk_tmp"
+        exit 1
+    fi
+    if ( : </dev/tty ) 2>/dev/null; then
+        if sh "$__kirk_tmp" "$@" </dev/tty; then __kirk_rc=0; else __kirk_rc=$?; fi
     else
         # No controlling tty; allow non-interactive use when -Client is provided.
         case " $* " in
             *" -Client "*|*" --client "*|*" -client "*)
-                sh "$__kirk_tmp" "$@"
-                __kirk_rc=$?
+                if sh "$__kirk_tmp" "$@"; then __kirk_rc=0; else __kirk_rc=$?; fi
                 ;;
             *)
                 printf 'install.sh: no interactive terminal; pass -Client vencord|vesktop|equicord\n' >&2
