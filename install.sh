@@ -253,11 +253,30 @@ download() {
     curl -fsSL "$1" -o "$2"
 }
 
+ensure_vencord_checkout() {
+    local name="${1:-Vencord}"
+    local repo="$2"
+    local found
+    found="$(find_vencord_root "$name")"
+    if [ -n "$found" ]; then echo "$found"; return 0; fi
+
+    command -v git >/dev/null 2>&1 || die "$name checkout not found and git is not installed. Install git, or pass -Root <$name>"
+    local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/kirkstagram/$name"
+    if [ -f "$cache_dir/package.json" ]; then
+        printf 'Using cached %s checkout: %s\n' "$name" "$cache_dir" >&2
+        echo "$cache_dir"; return 0
+    fi
+    printf 'No %s checkout found; cloning %s into %s ...\n' "$name" "$repo" "$cache_dir" >&2
+    mkdir -p "$(dirname "$cache_dir")"
+    git clone --depth 1 "$repo" "$cache_dir" >&2
+    echo "$cache_dir"
+}
+
 # --- flows ---
 
 flow_vencord() {
     local vroot="$root"
-    if [ -z "$vroot" ]; then vroot="$(find_vencord_root)"; fi
+    if [ -z "$vroot" ]; then vroot="$(ensure_vencord_checkout Vencord "https://github.com/Vendicated/Vencord.git")"; fi
     if [ -z "$vroot" ]; then
         die "Vencord install not found - pass -Root <VENCORD>"
     fi
@@ -281,18 +300,7 @@ flow_vencord() {
 }
 
 flow_vesktop() {
-    # 1) build the Vencord checkout
-    local vroot="$root"
-    if [ -z "$vroot" ]; then vroot="$(find_vencord_root)"; fi
-    if [ -z "$vroot" ]; then
-        die "Vesktop flow: no Vencord checkout found - pass -Root <VENCORD>"
-    fi
-    if [ ! -f "$vroot/package.json" ]; then
-        die "not a Vencord checkout: $vroot"
-    fi
-    build_vencord "$vroot"
-
-    # 2) find Vesktop's vencordFiles dir (app uses it when it has all files)
+    # Find Vesktop's vencordFiles dir (Flatpak + native).
     local vdir="" d
     if [ -n "$root" ]; then
         d="$root/sessionData/vencordFiles"
@@ -311,8 +319,22 @@ flow_vesktop() {
     fi
     mkdir -p "$vdir"
 
-    cp "$vroot/dist/vencordDesktopMain.js" "$vroot/dist/vencordDesktopPreload.js" \
-       "$vroot/dist/vencordDesktopRenderer.js" "$vroot/dist/vencordDesktopRenderer.css" "$vdir/"
+    # Prefer prebuilt dist (no git/node/pnpm needed). If the user passed -Root
+    # pointing to a Vencord checkout, build from source instead.
+    local vroot="$root"
+    if [ -n "$vroot" ] && [ -f "$vroot/package.json" ]; then
+        printf 'Building Vencord from checkout: %s\n' "$vroot"
+        build_vencord "$vroot"
+        cp "$vroot/dist/vencordDesktopMain.js" "$vroot/dist/vencordDesktopPreload.js" \
+           "$vroot/dist/vencordDesktopRenderer.js" "$vroot/dist/vencordDesktopRenderer.css" "$vdir/"
+    else
+        local td zip
+        td="$(mktemp -d)"; zip="$td/vencordDesktopDist.zip"
+        printf 'Downloading prebuilt Kirkstagram+Vencord desktop dist...\n'
+        download "$base/releases/vesktop/vencordDesktopDist.zip" "$zip"
+        unzip_to "$zip" "$vdir"
+    fi
+
     printf 'Vesktop is now using your Kirkstagram build (%s).\n' "$vdir"
     printf 'Next: restart Vesktop and enable Kirkstagram in its Plugins panel.\n'
 }
@@ -331,7 +353,7 @@ flow_valenced() {
 flow_equicord() {
     # Equicord is Vencord-based and uses the same Vencord plugin system.
     local vroot="$root"
-    if [ -z "$vroot" ]; then vroot="$(find_vencord_root Equicord)"; fi
+    if [ -z "$vroot" ]; then vroot="$(ensure_vencord_checkout Equicord "https://github.com/Equicord/Equicord.git")"; fi
     if [ -z "$vroot" ]; then
         die "Equicord install not found - pass -Root <EQUICORD>"
     fi

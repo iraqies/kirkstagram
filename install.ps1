@@ -179,20 +179,11 @@ function Install-Vencord {
 }
 
 function Install-Vesktop {
-    # Vesktop loads its Vencord bundle from vencordFiles; if all files are there
-    # it uses them instead of downloading the official build. So: build the
-    # Kirkstagram-patched Vencord and drop the files into that folder.
-    $vroot = $Root
-    if (-not $vroot) { $vroot = Find-VencordRoot }
-    if (-not $vroot) { Write-Error "Vesktop flow: no Vencord checkout found - pass -Root <VENCORD>"; exit 1 }
-    if (-not (Test-Path (Join-Path $vroot "package.json"))) { Write-Error "not a Vencord checkout: $vroot"; exit 1 }
-    Write-Host "Found Vencord checkout: $vroot"
-
-    Build-Vencord $vroot
-
-    $vdist = Join-Path $vroot "dist"
+    # Vesktop loads its Vencord bundle from vencordFiles. Prefer the prebuilt
+    # dist (no git/node/pnpm needed). If -Root points to a Vencord checkout,
+    # build from source instead.
     $filesDir = Join-Path $env:APPDATA "Vesktop\sessionData\vencordFiles"
-    if ($Root) {
+    if ($Root -and -not (Test-Path (Join-Path $Root "package.json"))) {
         if (Test-Path (Join-Path $Root "sessionData")) { $filesDir = Join-Path $Root "sessionData\vencordFiles" }
         elseif (Test-Path (Join-Path $Root "vencordFiles")) { $filesDir = Join-Path $Root "vencordFiles" }
         elseif (Test-Path $Root) { $filesDir = $Root }
@@ -200,18 +191,27 @@ function Install-Vesktop {
     New-Item -ItemType Directory -Path $filesDir -Force | Out-Null
     Write-Host "Vesktop Vencord files dir: $filesDir"
 
-    $files = @(
-        (Join-Path $vdist "vencordDesktopMain.js"),
-        (Join-Path $vdist "vencordDesktopPreload.js"),
-        (Join-Path $vdist "vencordDesktopRenderer.js"),
-        (Join-Path $vdist "vencordDesktopRenderer.css")
-    )
-    $missing = $files | Where-Object { -not (Test-Path $_) }
-    if ($missing) {
-        Write-Error "missing built Vencord files in $vdist`: $($missing -join ', ')"
-        exit 1
+    $vroot = $Root
+    if ($vroot -and (Test-Path (Join-Path $vroot "package.json"))) {
+        Write-Host "Building Vencord from checkout: $vroot"
+        Build-Vencord $vroot
+        $vdist = Join-Path $vroot "dist"
+        $files = @(
+            (Join-Path $vdist "vencordDesktopMain.js"),
+            (Join-Path $vdist "vencordDesktopPreload.js"),
+            (Join-Path $vdist "vencordDesktopRenderer.js"),
+            (Join-Path $vdist "vencordDesktopRenderer.css")
+        )
+        $missing = $files | Where-Object { -not (Test-Path $_) }
+        if ($missing) { Write-Error "missing built Vencord files in $vdist`: $($missing -join ', ')"; exit 1 }
+        Copy-Item -Force $files -Destination $filesDir
+    } else {
+        $zipPath = Join-Path $env:TEMP "vencordDesktopDist.zip"
+        Write-Host "Downloading prebuilt Kirkstagram+Vencord desktop dist..."
+        Invoke-WebRequest -Uri "$base/releases/vesktop/vencordDesktopDist.zip" -OutFile $zipPath
+        Expand-Archive -Path $zipPath -DestinationPath $filesDir -Force
     }
-    Copy-Item -Force $files -Destination $filesDir
+
     Write-Host "Vesktop is now using your Kirkstagram build ($filesDir)."
     Write-Host "Next: restart Vesktop and enable the Kirkstagram plugin in its Plugins panel."
 }
