@@ -4,19 +4,19 @@
  * Self-contained polymanifest main file (vendetta-mod/polymanifest):
  * served at <url>/index.js, evaluated as `vendetta=>{return <file>}`.
  *
- * Interception target: the metro "messageUtil" module (imported as
- * `import { messageUtil } from "@metro/common"` in the Revenge/Discord
- * mobile bundle), which exposes `sendMessage(channelId, { content }, ...)`
- * and `sendBotMessage(channelId, content)`. The app captured `messageUtil`
- * as a reference at plugin-eval time, so we mutate that object's
- * `sendMessage`/`sendBotMessage` properties in place — every caller, the
- * plugins command included, then goes through the wrapper.
+ * Interception target: `messageutil` from `@metro/common`
+ * (src/metro/common/index.ts: `export const messageUtil = findByPropsLazy("sendBotMessage")`),
+ * which exposes `sendMessage(channelId, { content }, ...)` and
+ * `sendBotMessage(channelId, content)`. The app captured `messageutil` as a
+ * reference at plugin-eval time, so we mutate that object's
+ * `sendMessage`/`sendBotMessage` properties in place — every caller then goes
+ * through the wrapper. The rewrite mutates message.content in place and is
+ * idempotent (__ksPatched guard), so overlapping hooks are harmless.
  *
- * Since messageUtil may load lazily after boot, we repeatedly scan the
- * metro registry (and the vendetta object) and proxy module `.exports`
- * setters so newly loaded modules are hooked immediately. The rewrite
- * mutates message.content in place and is idempotent (__ksPatched guard),
- * so overlapping hooks are harmless.
+ * Strategy: hook `window.__r` (metro require) to catch modules as they load,
+ * plus deep-scan `window.modules` and `vendetta` on a timer for
+ * lazily-loaded modules. Direct in-place mutation means any reference to the
+ * `messageutil` object (including captured consts) sees the wrapped send.
  */
 import { DEFAULT_CONFIG, mergeConfig, rewriteInstagramUrls } from "../../packages/core/src/index";
 
@@ -36,50 +36,43 @@ function rewriteArgs(args) {
 	return args;
 }
 
-function makeWrappedSend(fn) {
-	if (fn && fn.__ksPatched) return fn;
+const patchedFn = new WeakSet();
+const patchedObj = new WeakSet();
+
+function wrapSend(fn) {
+	if (patchedFn.has(fn)) return fn;
 	const wrapped = function (...args) {
 		const next = rewriteArgs(args) ?? args;
 		return fn.apply(this, next);
 	};
-	wrapped.__ksPatched = true;
+	patchedFn.add(fn);
+	patchedFn.add(wrapped);
 	return wrapped;
 }
 
-function hookSendOnObject(obj) {
-	if (!obj || typeof obj !== "object") return;
-	if (typeof obj.sendMessage === "function") obj.sendMessage = makeWrappedSend(obj.sendMessage);
-	if (typeof obj.sendBotMessage === "function") obj.sendBotMessage = makeWrappedSend(obj.sendBotMessage);
+function hookObj(obj) {
+	if (!obj || typeof obj !== "object" || patchedObj.has(obj)) return;
+	if (typeof obj.sendMessage === "function") obj.sendMessage = wrapSend(obj.sendMessage);
+	if (typeof obj.sendBotMessage === "function") obj.sendBotMessage = wrapSend(obj.sendBotMessage);
+	patchedObj.add(obj);
 }
 
-function wrapObject(obj) {
-	if (!obj || typeof obj !== "object") return obj;
-	hookSendOnObject(obj);
-	return new Proxy(obj, {
-		set(t, k, v) {
-			const r = Reflect.set(t, k, v);
-			try {
-				if ((k === "sendMessage" || k === "sendBotMessage") && typeof v === "function") {
-					t[k] = makeWrappedSend(v);
-					return true;
-				}
-				if ((k === "exports" || k === "default" || k === "messageUtil") && v && typeof v === "object") {
-					t[k] = wrapObject(v);
-					return true;
-				}
-			} catch {}
-			return r;
-		}
-	});
-}
-
-function wrapEntry(entry) {
-	if (!entry || typeof entry !== "object") return entry;
-	if (entry.exports && typeof entry.exports === "object") entry.exports = wrapObject(entry.exports);
-	if (entry.default && typeof entry.default === "object") entry.default = wrapObject(entry.default);
-	if (entry.messageUtil && typeof entry.messageUtil === "object") entry.messageUtil = wrapObject(entry.messageUtil);
-	hookSendOnObject(entry);
-	return entry;
+// Hook metro require to catch modules as they're required (including @metro/common)
+if (typeof window.__r === "function") {
+	const origR = window.__r;
+	window.__r = function(id) {
+		let result;
+		try { result = origR(id); } catch { return origR(id); }
+		try {
+			if (result && typeof result === "object") {
+				hookObj(result);
+				if (result.default && typeof result.default === "object") hookObj(result.default);
+				if (result.exports && typeof result.exports === "object") hookObj(result.exports);
+				if (result.messageutil && typeof result.messageutil === "object") hookObj(result.messageutil);
+			}
+		} catch {}
+		return result;
+	};
 }
 
 function scanModules(modules) {
@@ -88,65 +81,41 @@ function scanModules(modules) {
 		try {
 			const m = modules[key];
 			if (m && typeof m === "object") {
-				// Assign back so the module object itself becomes a proxy; later
-				// `modules[key].exports = ...` assignments flow through the trap.
-				modules[key] = wrapEntry(m);
-				hookSendOnObject(m);
+				hookObj(m);
+				if (m.exports && typeof m.exports === "object") hookObj(m.exports);
+				if (m.default && typeof m.default === "object") hookObj(m.default);
+				if (m.exports && m.exports.messageutil && typeof m.exports.messageutil === "object") hookObj(m.exports.messageutil);
 			}
 		} catch {}
 	}
 }
 
 function deepScan(obj, depth) {
-	if (!obj || typeof obj !== "object" || depth > 4) return;
+	if (!obj || typeof obj !== "object" || depth > 3) return;
 	try {
+		hookObj(obj);
 		for (const key in obj) {
 			const v = obj[key];
 			if (v && typeof v === "object") {
-				hookSendOnObject(v);
-				if ((key === "sendMessage" || key === "sendBotMessage") && typeof v === "function") {
-					// already hooked above
-				}
+				hookObj(v);
 				deepScan(v, depth + 1);
 			}
 		}
 	} catch {}
 }
 
-function installModulesProxy() {
-	if (window.__ksModulesProxy) return;
-	const orig = vendetta.metro.modules || window.modules;
-	if (!orig || typeof orig !== "object") return;
-	try {
-		const proxy = new Proxy(orig, {
-			set(t, k, v) {
-				const r = Reflect.set(t, k, v);
-				try {
-					if (v && typeof v === "object") wrapEntry(v);
-				} catch {}
-				return r;
-			}
-		});
-		vendetta.metro.modules = proxy;
-		try { window.modules = proxy; } catch {}
-		window.__ksModulesProxy = true;
-	} catch {}
-}
-
-// Initial scan of metro registry + vendetta object.
-scanModules(vendetta.metro.modules);
+// Initial scan
 scanModules(window.modules);
+scanModules(vendetta?.metro?.modules);
 deepScan(vendetta, 0);
-installModulesProxy();
 
-// Re-scan on a tight schedule to catch lazily-loaded metro modules.
-for (const delay of [0, 100, 250, 500, 1000, 2000, 4000, 8000, 12000, 20000, 30000]) {
+// Re-scan to catch lazily-loaded metro modules
+for (const delay of [0, 100, 300, 1000, 3000, 10000, 30000]) {
 	setTimeout(() => {
 		try {
-			scanModules(vendetta.metro.modules);
 			scanModules(window.modules);
+			scanModules(vendetta?.metro?.modules);
 			deepScan(vendetta, 0);
-			installModulesProxy();
 		} catch {}
 	}, delay);
 }
@@ -154,10 +123,9 @@ for (const delay of [0, 100, 250, 500, 1000, 2000, 4000, 8000, 12000, 20000, 300
 export default {
 	onLoad() {
 		try {
-			scanModules(vendetta.metro.modules);
 			scanModules(window.modules);
+			scanModules(vendetta?.metro?.modules);
 			deepScan(vendetta, 0);
-			installModulesProxy();
 		} catch {}
 	},
 	onUnload() {}
