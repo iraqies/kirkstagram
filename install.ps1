@@ -88,12 +88,15 @@ function Select-ClientMenu {
     }
 }
 
-$clients = @('vencord','vesktop','revenge','valenced','equicord')
+# Desktop clients shown in the interactive menu. Mobile-only mods (revenge, valenced)
+# are still accepted via -Client but hidden from the PC picker.
+$menuClients = @('vencord','vesktop','equicord')
+$allClients = @('vencord','vesktop','equicord','revenge','valenced')
 if (-not $Client) {
-    $Client = Select-ClientMenu -Clients $clients
+    $Client = Select-ClientMenu -Clients $menuClients
 }
-if (-not $Client -or $Client -notin $clients) {
-    Write-Error "No client selected."
+if (-not $Client -or $Client -notin $allClients) {
+    Write-Error "No client selected. Supported: $($allClients -join ', ')"
     exit 1
 }
 

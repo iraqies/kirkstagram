@@ -5,7 +5,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.sh | sh
 #
 # Usage:
-#   sh install.sh [-Client vencord|vesktop|revenge|valenced|equicord] [-Root <dir>] [-Gui]
+#   sh install.sh [-Client vencord|vesktop|equicord|revenge|valenced] [-Root <dir>] [-Gui]
 set -e
 
 owner="iraqies"; repo="kirkstagram"; branch="main"
@@ -47,7 +47,9 @@ cat <<'BANNER'
   macOS/Linux:  curl -fsSL https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.sh | sh
 BANNER
 
-clients="vencord|vesktop|revenge|valenced|equicord"
+# Desktop clients shown in the interactive menu. Mobile-only mods (revenge, valenced)
+# are still accepted via -Client but hidden from the PC picker.
+menu_clients="vencord|vesktop|equicord"
 
 client_lower() { printf '%s\n' "$1" | tr '[:upper:]' '[:lower:]'; }
 
@@ -57,23 +59,22 @@ select_client_gui() {
         Darwin)
             command -v osascript >/dev/null 2>&1 || return 1
             local chosen
-            chosen="$(osascript -e 'choose from list {"Vencord", "Vesktop", "Revenge", "Valenced", "Equicord"} with title "Kirkstagram" with prompt "Which Discord client mod are you using?"' 2>/dev/null | tr -d '\r')"
+            chosen="$(osascript -e 'choose from list {"Vencord", "Vesktop", "Equicord"} with title "Kirkstagram" with prompt "Which Discord client mod are you using?"' 2>/dev/null | tr -d '\r')"
             [ -n "$chosen" ] && [ "$chosen" != "false" ] || return 1
             client_lower "$chosen"
             ;;
         Linux)
             if command -v zenity >/dev/null 2>&1; then
                 local chosen
-                chosen="$(zenity --list --title="Kirkstagram" --text="Which Discord client mod are you using?" --column="Client" "Vencord" "Vesktop" "Revenge" "Valenced" "Equicord" 2>/dev/null)"
+                chosen="$(zenity --list --title="Kirkstagram" --text="Which Discord client mod are you using?" --column="Client" "Vencord" "Vesktop" "Equicord" 2>/dev/null)"
                 [ -n "$chosen" ] || return 1
                 client_lower "$chosen"
             elif command -v kdialog >/dev/null 2>&1; then
                 local chosen
-                chosen="$(kdialog --menu "Kirkstagram" 1 "Vencord" 2 "Vesktop" 3 "Revenge" 4 "Valenced" 5 "Equicord" --title "Which Discord client mod are you using?" 2>/dev/null)"
+                chosen="$(kdialog --menu "Kirkstagram" 1 "Vencord" 2 "Vesktop" 3 "Equicord" --title "Which Discord client mod are you using?" 2>/dev/null)"
                 [ -n "$chosen" ] || return 1
                 case "$chosen" in
-                    1) printf 'vencord\n' ;; 2) printf 'vesktop\n' ;; 3) printf 'revenge\n' ;;
-                    4) printf 'valenced\n' ;; 5) printf 'equicord\n' ;; *) return 1 ;;
+                    1) printf 'vencord\n' ;; 2) printf 'vesktop\n' ;; 3) printf 'equicord\n' ;; *) return 1 ;;
                 esac
             else
                 return 1
@@ -85,7 +86,7 @@ select_client_gui() {
 
 # Console arrow-key menu (bash).
 select_client_console() {
-    local items=(vencord vesktop revenge valenced equicord)
+    local items=(vencord vesktop equicord)
     local count=${#items[@]}
     local index=0
     while :; do
@@ -130,12 +131,11 @@ select_client() {
     fi
     # Numbered fallback (POSIX sh).
     printf 'Which Discord client mod are you using?\n'
-    printf '  1) vencord\n  2) vesktop\n  3) revenge\n  4) valenced\n  5) equicord\n'
+    printf '  1) vencord\n  2) vesktop\n  3) equicord\n'
     local n
     IFS= read -r n
     case "$n" in
-        1) client=vencord ;; 2) client=vesktop ;; 3) client=revenge ;;
-        4) client=valenced ;; 5) client=equicord ;; *) return 1 ;;
+        1) client=vencord ;; 2) client=vesktop ;; 3) client=equicord ;; *) return 1 ;;
     esac
 }
 
