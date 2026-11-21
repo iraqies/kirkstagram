@@ -86,14 +86,14 @@ select_client_gui() {
 
 # Console arrow-key menu (bash).
 select_client_console() {
-    local items=(vencord vesktop equicord)
-    local count=${#items[@]}
+    local items="vencord vesktop equicord"
+    local count=3
     local index=0
     while :; do
         clear 2>/dev/null || printf '\033[2J\033[H'
         printf 'Which Discord client mod are you using?\n\n'
         local i=0
-        for item in "${items[@]}"; do
+        for item in $items; do
             if [ "$i" -eq "$index" ]; then printf '  > %s\n' "$item"; else printf '    %s\n' "$item"; fi
             i=$((i+1))
         done
@@ -112,8 +112,11 @@ select_client_console() {
                 ;;
             "$(printf '\r')"|"$(printf '\n')")
                 printf '\n'
-                printf '%s\n' "${items[$index]}"
-                return 0
+                local j=0
+                for item in $items; do
+                    if [ "$j" -eq "$index" ]; then printf '%s\n' "$item"; return 0; fi
+                    j=$((j+1))
+                done
                 ;;
             q|Q)
                 return 1
