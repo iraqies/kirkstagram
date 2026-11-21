@@ -210,15 +210,18 @@ vencord_data_dir() {
 
 find_vesktop_files_dirs() {
     # Vesktop stores its Vencord bundle in vencordFiles under the app data dirs.
+    # Includes Flatpak paths (~/.var/app/dev.vencord.Vesktop/...).
     local root
     for root in \
         "$HOME/.config" \
+        "$HOME/.var/app/dev.vencord.Vesktop/config" \
+        "$HOME/.var/app/dev.vencord.Vesktop" \
         "$HOME/Library/Application Support" \
         "$HOME/Applications" \
         "/usr/local/share"
     do
         [ -d "$root" ] || continue
-        find "$root" -maxdepth 4 -type d -name vencordFiles 2>/dev/null
+        find "$root" -maxdepth 5 -type d -name vencordFiles 2>/dev/null
     done
 }
 
@@ -300,7 +303,11 @@ flow_vesktop() {
         vdir="$(find_vesktop_files_dirs | head -n 1)"
     fi
     if [ -z "$vdir" ]; then
-        vdir="$HOME/.config/Vesktop/sessionData/vencordFiles"
+        if [ -d "$HOME/.var/app/dev.vencord.Vesktop" ]; then
+            vdir="$HOME/.var/app/dev.vencord.Vesktop/config/Vesktop/sessionData/vencordFiles"
+        else
+            vdir="$HOME/.config/Vesktop/sessionData/vencordFiles"
+        fi
     fi
     mkdir -p "$vdir"
 
