@@ -1,0 +1,13 @@
+﻿{
+    "format":  1,
+    "name":  "Kirkstagram",
+    "description":  "Rewrites Instagram links into Kirkstagram links before sending",
+    "authors":  [
+                    {
+                        "id":  "0",
+                        "name":  "Kirkstagram contributors"
+                    }
+                ],
+    "main":  "index.js",
+    "hash":  "DCD1BB294BF2B8235FD96C82F980FDD31926D66E555F1F6848FF5669D914FBBB"
+}

@@ -53,8 +53,10 @@ filters from `@revenge-mod/modules/finders/filters` (`withProps`).
    the app's plug-in loader, or sideload the ZIP. See the `revenge-plugin-template` README (*Distribution*).
 2. Enable the plugin in the app's plug-in panel and restart Discord.
 
-Or install the prebuilt artifact: `releases/revenge/com.kirkstagram.revenge@1.0.0.zip`
-(see [RELEASES.md](RELEASES.md)).
+Or install the prebuilt artifact via URL
+(`https://raw.githubusercontent.com/iraqies/kirkstagram/main/releases/revenge/polymanifest/`)
+through the app's URL-based install, or sideload the ZIP:
+`releases/revenge/com.kirkstagram.revenge@1.0.0.zip` (see [RELEASES.md](RELEASES.md)).
 
 ## Config
 

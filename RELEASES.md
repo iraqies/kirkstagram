@@ -72,7 +72,9 @@ restart Discord. Sideloading the ZIP via **Install from file** also works.
 - **Revenge** — extracts into `<revenge-plugin-template>`:
   `plugins/kirkstagram/` (plugin + manifest) and `packages/core/src/` (the
   shared engine). Install the ZIP in the app (see the `revenge-plugin-template`
-  README, *Distribution*) or sideload it, then enable the plugin.
+  README, *Distribution*), sideload it, or install via URL
+  `https://raw.githubusercontent.com/iraqies/kirkstagram/main/releases/revenge/polymanifest/`,
+  then enable the plugin.
 - **Valenced** — extracts into `<valenced-plugin-template>`: the ZIP holds
   `manifest.json` (plugin metadata, including `dist.script`) plus `index.js`,
   a self-contained bundled script (the shared core engine is inlined, built
