@@ -14,7 +14,7 @@
             "versions": {
                 "1.0.0": {
                     "url": "https://raw.githubusercontent.com/iraqies/kirkstagram/main/releases/valenced/com.kirkstagram.valenced@1.0.0.zip",
-                    "sha256": "8514D5701129F65D75012E2E4012244B34109B0F440AB9DBB282A5DA570FC402",
+                    "sha256": "8514d5701129f65d75012e2e4012244b34109b0f440ab9dbb282a5da570fc402",
                     "size": 8212,
                     "dependencies": {
                         "valenced.api": { "version": ">=1 <2" },
