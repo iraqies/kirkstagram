@@ -40,10 +40,11 @@ blocks are left untouched.
 
 | Platform | Adapter | Status |
 | --- | --- | --- |
-| Vencord (desktop) | `platforms/vencord` | Verified against current source (a846785) |
+| Vencord (desktop) | `platforms/vencord` | Verified against current source |
 | Vesktop (desktop) | `platforms/vesktop` (docs only) | Compatible via stock Vencord |
 | Revenge (Android) | `platforms/revenge` | Built; device test pending |
 | Valenced (Android) | `platforms/valenced` | Built; device test pending |
+| Equicord (desktop) | `platforms/equicord` | Vencord-based; same adapter as Vencord |
 
 ## Architecture
 
@@ -135,6 +136,39 @@ No Vesktop adapter: Vesktop downloads the stock Vencord stack from
 
    See `platforms/revenge/README.md`.
 
+### Equicord (desktop)
+
+Equicord is Vencord-based and uses the same Vencord plugin system.
+
+1. Copy the adapter into Equicord's plugins folder:
+
+   ```sh
+   mkdir -p <EQUICORD>/src/plugins/kirkstagram
+   cp <KIRKSTAGRAM>/platforms/equicord/index.ts <EQUICORD>/src/plugins/kirkstagram/index.ts
+   ```
+
+   Replace `<EQUICORD>` with your Equicord checkout and `<KIRKSTAGRAM>` with
+   your Kirkstagram checkout.
+
+2. Adjust the core import in `index.ts`: from
+   `<EQUICORD>/src/plugins/kirkstagram/`, point it to
+   `<KIRKSTAGRAM>/packages/core/src/index` with a relative path. Example:
+   `../../../../kirkstagram/packages/core/src/index` when the repositories
+   are siblings under one directory.
+
+3. Build Equicord:
+
+   ```sh
+   cd <EQUICORD>
+   pnpm install
+   pnpm build
+   pnpm inject
+   ```
+
+4. Open Discord → **Settings → Equicord → Plugins** → enable **Kirkstagram**.
+
+   See `platforms/equicord/README.md` for a full install/use/test guide.
+
 ### Valenced (Android)
 
 1. Place the plugin in the Valenced plugin repository template:
@@ -177,6 +211,7 @@ powershell install.ps1 -Client vencord -Root <VENCORD>
 powershell install.ps1 -Client vesktop -Root <vesktop-install-dir>
 powershell install.ps1 -Client revenge -Root <@revenge-plugin-template>
 powershell install.ps1 -Client valenced -Root <@valenced-plugin-template>
+powershell install.ps1 -Client equicord -Root <EQUICORD>
 ```
 
 Linux/macOS: `curl -fsSL https://raw.githubusercontent.com/iraqies/kirkstagram/main/install.sh | sh`.

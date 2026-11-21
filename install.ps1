@@ -15,25 +15,26 @@ param(
     [string]$Root
 )
 
-$banner = @"
+$ascii = @"
+KIRKSTAGRAM
+===========
 
-#   # ##### ####  #   #  #### #####   ##   ###  ####    ##  #   #
-#   #   #   #   # #   # #       #    #  # #   # #   #  #  # ## ##
-#   #   #   #   # #   # #       #   #   # #     #   # #   # # # #
-#####   #   ####  #####  ###    #   ##### # ### ####  ##### # # #
-#   #   #   # #   #   #     #   #   #   # #   # #   #   #   # #   #
-#   #   #   #  #  #   #     #   #   #   # #  #  #   # #   # #   #
-#   # ##### #   # #   # ####    #   #   #  ###  #   # #   # #   #
+  _____ _   _ _   _  ____ _____   ____ _   _ ___ _   _ 
+  | ____| \ | | \ | |/ ___| ____| / ___| | | |_ _| \ | |
+  |  _| |  \| |  \| | |  _|  _|   | |   | |_| || ||  \| |
+  | |___| |\  | |\  | |_| | |___  | |___|  _  || || |\  |
+  |_____|_| \_|_| \_|\____|_____|  \____|_| |_|___|_| \_|
 
-Kirkstagram - Instagram-to-Kirkstagram link rewriting for Discord.
+  Instagram -> Kirkstagram link rewriting for Discord
+  https://github.com/iraqies/kirkstagram
 "@
 
-Write-Host $banner
+Write-Host $ascii
 
 $owner = 'iraqies'; $repo = 'kirkstagram'; $branch = 'main'
 $base = "https://raw.githubusercontent.com/$owner/$repo/$branch"
 
-$clients = @('vencord','vesktop','revenge','valenced')
+$clients = @('vencord','vesktop','revenge','valenced','equicord')
 if (-not $Client -or $Client -notin $clients) {
     do {
         $Client = Read-Host "Which client? [vencord|vesktop|revenge|valenced]"
@@ -161,9 +162,29 @@ function Install-Valenced {
     Write-Host "Sideload alternative (no repository): $base/releases/valenced/com.kirkstagram.valenced@1.0.0.zip"
 }
 
+function Install-Equicord {
+    # Equicord is Vencord-based and uses the same Vencord plugin system.
+    $vroot = $Root
+    if (-not $vroot) { $vroot = Find-VencordRoot }
+    if (-not $vroot) { Write-Error "Equicord flow: no Equicord checkout found - pass -Root <EQUICORD>"; exit 1 }
+    if (-not (Test-Path (Join-Path $vroot "package.json"))) { Write-Error "not an Equicord checkout: $vroot"; exit 1 }
+    Write-Host "Found Equicord checkout: $vroot"
+
+    $zipPath = Join-Path $env:TEMP "Kirkstagram.zip"
+    Write-Host "Downloading $base/releases/vencord/Kirkstagram.zip ..."
+    Invoke-WebRequest -Uri "$base/releases/vencord/Kirkstagram.zip" -OutFile $zipPath
+    Write-Host "Installed Kirkstagram (equicord) into $vroot"
+    Expand-Archive -Path $zipPath -DestinationPath $vroot -Force
+
+    Build-Vencord $vroot
+    Sync-Vencord $vroot
+    Write-Host "Next: enable Kirkstagram in the Equicord Plugins panel (restart Discord if asked)."
+}
+
 switch ($Client) {
     'vencord' { Install-Vencord }
     'vesktop' { Install-Vesktop }
     'revenge' { Install-Revenge }
     'valenced' { Install-Valenced }
+    'equicord' { Install-Equicord }
 }

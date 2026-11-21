@@ -44,6 +44,7 @@ function zip(srcRoot, entries, zipPath) {
 
 // --- Vencord: extracts into <VENCORD> root ---
 // Archive contents: src/plugins/kirkstagram/index.ts + src/packages/core/src/*
+// Also used by Equicord (Vencord-based; same adapter works unchanged).
 const vencord = stageDir("vencord");
 copyFile(join(root, "platforms/vencord/index.ts"), join(vencord, "src/plugins/kirkstagram"));
 copyCore(join(vencord, "src/packages/core/src"));

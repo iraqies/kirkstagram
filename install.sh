@@ -32,24 +32,26 @@ done
 
 cat <<'BANNER'
 
-#   # ##### ####  #   #  #### #####   ##   ###  ####    ##  #   #
-#   #   #   #   # #   # #       #    #  # #   # #   #  #  # ## ##
-#   #   #   #   # #   # #       #   #   # #     #   # #   # # # #
-#####   #   ####  #####  ###    #   ##### # ### ####  ##### # # #
-#   #   #   # #   #   #     #   #   #   # #   # #   #   #   # #   #
-#   #   #   #  #  #   #     #   #   #   # #  #  #   # #   # #   #
-#   # ##### #   # #   # ####    #   #   #  ###  #   # #   # #   #
+KIRKSTAGRAM
+===========
 
-Kirkstagram - Instagram-to-Kirkstagram link rewriting for Discord.
+  _____ _   _ _   _  ____ _____   ____ _   _ ___ _   _ 
+  | ____| \ | | \ | |/ ___| ____| / ___| | | |_ _| \ | |
+  |  _| |  \| |  \| | |  _|  _|   | |   | |_| || ||  \| |
+  | |___| |\  | |\  | |_| | |___  | |___|  _  || || |\  |
+  |_____|_| \_|_| \_|\____|_____|  \____|_| |_|___|_| \_|
+
+  Instagram -> Kirkstagram link rewriting for Discord
+  https://github.com/iraqies/kirkstagram
 BANNER
 
-clients="vencord|vesktop|revenge|valenced"
+clients="vencord|vesktop|revenge|valenced|equicord"
 if [ -z "$client" ]; then
     printf 'Which client? [%s]: ' "$clients"
     IFS= read -r client
 fi
 case "$client" in
-    vencord|vesktop|revenge|valenced) ;;
+    vencord|vesktop|revenge|valenced|equicord) ;;
     *) die "unsupported client: $client" ;;
 esac
 
@@ -192,9 +194,37 @@ flow_valenced() {
     printf 'Sideload alternative (no repository): %s/releases/valenced/com.kirkstagram.valenced@1.0.0.zip\n' "$base"
 }
 
+flow_equicord() {
+    # Equicord is Vencord-based and uses the same Vencord plugin system.
+    local vroot="$root"
+    if [ -z "$vroot" ]; then vroot="$(find_vencord_root)"; fi
+    if [ -z "$vroot" ]; then
+        die "Equicord install not found - pass -Root <EQUICORD>"
+    fi
+    if [ ! -f "$vroot/package.json" ]; then
+        die "not an Equicord checkout: $vroot"
+    fi
+    printf 'Found Equicord checkout: %s\n' "$vroot"
+    printf 'Downloading %s/releases/vencord/Kirkstagram.zip ...\n' "$base"
+    local td zip
+    td="$(mktemp -d)"; zip="$td/Kirkstagram.zip"
+    download "$base/releases/vencord/Kirkstagram.zip" "$zip"
+    printf 'Installed Kirkstagram (equicord) into %s\n' "$vroot"
+    unzip_to "$zip" "$vroot"
+    build_vencord "$vroot"
+
+    local dd
+    dd="$(vencord_data_dir)"
+    mkdir -p "$dd/dist"
+    cp -r "$vroot"/dist/. "$dd/dist/"
+    printf 'Synced built files into %s/dist\n' "$dd"
+    printf 'Next: enable Kirkstagram in the Equicord Plugins panel (restart Discord if asked).\n'
+}
+
 case "$client" in
     vencord) flow_vencord ;;
     vesktop) flow_vesktop ;;
     revenge) flow_revenge ;;
     valenced) flow_valenced ;;
+    equicord) flow_equicord ;;
 esac

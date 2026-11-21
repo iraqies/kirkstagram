@@ -17,6 +17,7 @@ powershell install.ps1 -Client vencord -Root <VENCORD>
 powershell install.ps1 -Client vesktop -Root <Vesktop app dir or vencordFiles dir>
 powershell install.ps1 -Client revenge -Root <@revenge-plugin-template>
 powershell install.ps1 -Client valenced -Root <@valenced-plugin-template>
+powershell install.ps1 -Client equicord -Root <EQUICORD>
 ```
 
 macOS/Linux users:
@@ -45,6 +46,7 @@ https://github.com/iraqies/kirkstagram.
 | `releases/vencord/Kirkstagram.zip` | Vencord | 1.0.0 | `<VENCORD>` |
 | `releases/revenge/com.kirkstagram.revenge@1.0.0.zip` | Revenge | 1.0.0 | `<revenge-plugin-template>` |
 | `releases/valenced/com.kirkstagram.valenced@1.0.2.zip` | Valenced | 1.0.2 | `<valenced-plugin-template>` |
+| `releases/vencord/Kirkstagram.zip` | Equicord | 1.0.0 | `<EQUICORD>` |
 
 Valenced installs external plugins from repositories: add the Kirkstagram
 repository index
@@ -81,6 +83,11 @@ restart Discord. Sideloading the ZIP via **Install from file** also works.
   with the Valenced plugin toolchain). Install/sideload the ZIP (**Settings
   > Valenced > Plugins > Install from file**) or add it to a repository, then
   enable the plugin.
+- **Equicord** — extracts into `<EQUICORD>`: same Vencord-compatible build as
+  Vencord (`releases/vencord/Kirkstagram.zip`). Copy the plugin into
+  `<EQUICORD>\src\plugins\kirkstagram\index.ts` + the shared engine, then
+  build Equicord (`pnpm install && pnpm build && pnpm inject`). Equicord uses
+  the Vencord plugin system, so the Vencord build works unchanged.
 
 ## Manual fallback (no installer)
 
