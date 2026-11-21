@@ -46,9 +46,9 @@ function scan() {
 }
 
 scan();
-setTimeout(scan, 0);
-setTimeout(scan, 300);
-setTimeout(scan, 1500);
+for (const delay of [0, 250, 500, 1000, 2000, 4000, 8000, 12000]) {
+	setTimeout(scan, delay);
+}
 
 export default {
 	onLoad() {
