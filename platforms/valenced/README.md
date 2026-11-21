@@ -4,13 +4,18 @@ Rewrites Instagram links in outgoing messages before Discord sends them.
 
 ## Interception target
 
-On the mobile bundle the adapter patches the metro "Messages" module's
-`default.sendMessage` (the community-proven target; see the Valenced
-community plugin `clear-urls`), and falls back to patching any
-`messageUtil.sendMessage` where present:
+On the mobile bundle the adapter patches, via `@valenced/patcher`'s `before`
+hooks (the hook mutates the message object's `content` or replaces a string
+payload in the args array):
 
 ```ts
+// Metro module "Messages" (community-proven target; see the Valenced
+// community plugin `clear-urls`):
 Messages.default.sendMessage(channelId, { content }, options, extra)
+
+// Metro module with a `sendBotMessage` export (its exports are the
+// community "messageUtil"):
+messageUtil.sendMessage(channelId, { content }, ...)
 ```
 
 The adapter uses `@valenced/patcher`'s `before` hook, which receives the
@@ -46,7 +51,7 @@ Modules are located with `@valenced/modules/finders` (`getModules`,
    valenced-plugin build
    ```
 
-   Produces `build/dist/com.kirkstagram.valenced@1.0.0.zip`.
+   Produces `build/dist/com.kirkstagram.valenced@1.0.2.zip`.
 
 ## Install
 
@@ -60,7 +65,7 @@ Modules are located with `@valenced/modules/finders` (`getModules`,
    then tap **Install** on the Kirkstagram entry.
 2. Enable the plugin from the Plugins panel and restart Discord.
 
-Or install the prebuilt artifact: `releases/valenced/com.kirkstagram.valenced@1.0.1.zip`
+Or install the prebuilt artifact: `releases/valenced/com.kirkstagram.valenced@1.0.2.zip`
 (see [RELEASES.md](RELEASES.md)). The artifact is Valenced-canonical: the ZIP
 holds `manifest.json` (plugin metadata, including `dist.script`) plus
 `index.js`, a self-contained bundled script with the shared core engine

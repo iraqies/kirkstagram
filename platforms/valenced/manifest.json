@@ -3,7 +3,7 @@
 	"id": "com.kirkstagram.valenced",
 	"name": "Kirkstagram",
 	"description": "Rewrites Instagram links into Kirkstagram links before sending",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"author": "Kirkstagram contributors",
 	"dependencies": {
 		"valenced.api": {

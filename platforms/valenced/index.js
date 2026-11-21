@@ -3,12 +3,13 @@
  *
  * Rewrites Instagram links in outgoing messages before Discord sends them.
  *
- * Interception target: the metro "Messages" module in the mobile app
- * bundle, community-proven by the Valenced community plugin `clear-urls`
- * (`Messages.default.sendMessage(channelId, message, ...)`), where
- * `message` is the message object `{ content }` (or a plain content
- * string on some builds). An older-style `messageUtil` module is also
- * supported as a fallback.
+ * Interception targets in the mobile app bundle: the metro "Messages"
+ * module (community-proven by the Valenced community plugin `clear-urls`
+ * — `Messages.default.sendMessage(channelId, message, ...)`, where
+ * `message` is the message object `{ content }` or a plain content
+ * string on some builds), and the metro module with a `sendBotMessage`
+ * export, whose exports are the community "messageUtil" (see the
+ * community plugin's `modules.ts`).
  *
  * Hooked with `@valenced/patcher`'s `before`; the hook rewrites the
  * message content (mutating the object, or replacing a string payload in
@@ -36,32 +37,33 @@ function rewriteArgs(args) {
 	return args;
 }
 
-function patchMessagesModule(mod) {
-	const messages = mod?.default;
-	if (!messages || typeof messages.sendMessage !== 'function') return null;
-	return before(messages, 'sendMessage', rewriteArgs);
-}
-
-function patchMessageUtil(messageUtil) {
-	if (!messageUtil || typeof messageUtil.sendMessage !== 'function') return null;
-	return before(messageUtil, 'sendMessage', rewriteArgs);
-}
-
 function patchMessageUtils() {
 	const cleanupFns = [];
+	const hooked = new Set();
 
-	// Discord mobile: metro module "Messages"; send on its default export.
+	function hook(target) {
+		if (!target || typeof target !== 'object' || hooked.has(target)) return;
+		hooked.add(target);
+		if (typeof target.sendMessage === 'function') {
+			cleanupFns.push(before(target, 'sendMessage', rewriteArgs));
+		}
+	}
+
+	// Discord mobile: metro module "Messages"; send on its default export and
+	// on the module itself.
 	getModules(withName('Messages'), mod => {
-		const fn = patchMessagesModule(mod);
-		if (fn) cleanupFns.push(fn);
+		hook(mod?.default);
+		hook(mod);
 	});
 
-	// Fallback: other bundles may expose a `messageUtil`-style object.
+	// The metro module with a `sendBotMessage` export; its exports are the
+	// community "messageUtil" (see valenced-community-plugins commands.ts).
+	getModules(withProps('sendBotMessage'), exports => hook(exports));
+
+	// Other bundles may expose a `messageUtil`-style object.
 	for (const match of lookupModules(withProps('messageUtil'))) {
 		const exports = Array.isArray(match) ? match[0] : match;
-		const messageUtil = exports?.messageUtil ?? exports?.default?.messageUtil;
-		const fn = patchMessageUtil(messageUtil);
-		if (fn) cleanupFns.push(fn);
+		hook(exports?.messageUtil ?? exports?.default?.messageUtil ?? exports);
 	}
 
 	return () => {
