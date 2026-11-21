@@ -76,13 +76,14 @@ copyFile(
 	join(root, ".research", "valenced-plugin-template", "plugins", "kirkstagram", "build", "js", "index.js"),
 	valenced,
 );
-zip(valenced, ["manifest.json", "index.js"], join(out, "valenced/com.kirkstagram.valenced@1.0.0.zip"));
+const valencedVersion = JSON.parse(readFileSync(join(root, "platforms/valenced/manifest.json"), "utf8")).version;
+zip(valenced, ["manifest.json", "index.js"], join(out, `valenced/com.kirkstagram.valenced@${valencedVersion}.zip`));
 
 console.log("Release artifacts built under releases/:");
 for (const f of [
 	"releases/vencord/Kirkstagram.zip",
 	"releases/revenge/com.kirkstagram.revenge@1.0.0.zip",
-	"releases/valenced/com.kirkstagram.valenced@1.0.0.zip",
+	`releases/valenced/com.kirkstagram.valenced@${valencedVersion}.zip`,
 ]) {
 	console.log(" ", f);
 }

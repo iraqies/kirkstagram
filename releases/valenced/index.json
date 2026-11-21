@@ -9,12 +9,12 @@
             "author": "Kirkstagram contributors",
             "contributors": [],
             "channels": {
-                "latest": "1.0.0"
+                "latest": "1.0.1"
             },
             "versions": {
-                "1.0.0": {
-                    "url": "https://raw.githubusercontent.com/iraqies/kirkstagram/main/releases/valenced/com.kirkstagram.valenced@1.0.0.zip",
-                    "sha256": "41048788c09ff9e23e32f05105df7bfb0b1223216182c528c7d4f06c4ce905f8",
+                "1.0.1": {
+                    "url": "https://raw.githubusercontent.com/iraqies/kirkstagram/main/releases/valenced/com.kirkstagram.valenced@1.0.1.zip",
+                    "sha256": "1b34c3a07655d2811f3479ab685bde05b5ec6f219f3de1e4b6a93dfc767cd0f7",
                     "size": 1823,
                     "dependencies": {
                         "valenced.api": { "version": ">=1 <2" },

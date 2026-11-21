@@ -44,7 +44,7 @@ https://github.com/iraqies/kirkstagram.
 | --- | --- | --- | --- |
 | `releases/vencord/Kirkstagram.zip` | Vencord | 1.0.0 | `<VENCORD>` |
 | `releases/revenge/com.kirkstagram.revenge@1.0.0.zip` | Revenge | 1.0.0 | `<revenge-plugin-template>` |
-| `releases/valenced/com.kirkstagram.valenced@1.0.0.zip` | Valenced | 1.0.0 | `<valenced-plugin-template>` |
+| `releases/valenced/com.kirkstagram.valenced@1.0.1.zip` | Valenced | 1.0.1 | `<valenced-plugin-template>` |
 
 Valenced installs external plugins from repositories: add the Kirkstagram
 repository index

@@ -60,7 +60,7 @@ Modules are located with `@valenced/modules/finders` (`getModules`,
    then tap **Install** on the Kirkstagram entry.
 2. Enable the plugin from the Plugins panel and restart Discord.
 
-Or install the prebuilt artifact: `releases/valenced/com.kirkstagram.valenced@1.0.0.zip`
+Or install the prebuilt artifact: `releases/valenced/com.kirkstagram.valenced@1.0.1.zip`
 (see [RELEASES.md](RELEASES.md)). The artifact is Valenced-canonical: the ZIP
 holds `manifest.json` (plugin metadata, including `dist.script`) plus
 `index.js`, a self-contained bundled script with the shared core engine
