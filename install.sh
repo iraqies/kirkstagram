@@ -142,7 +142,7 @@ select_client_console() {
                 printf '\n'
                 local j=0
                 for item in $items; do
-                    if [ "$j" -eq "$index" ]; then printf '%s\n' "$item"; return 0; fi
+                    if [ "$j" -eq "$index" ]; then client="$item"; return 0; fi
                     j=$((j+1))
                 done
                 ;;
